@@ -4,22 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-interface ScrapedData {
-  title: string;
-  description: string;
-  content: string;
-  url: string;
-}
+import { ScrapedData } from "@/types/site";
 
 interface UrlScraperProps {
   onScraped: (data: ScrapedData) => void;
   scrapedData: ScrapedData | null;
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
 }
 
-export const UrlScraper = ({ onScraped, scrapedData }: UrlScraperProps) => {
+export const UrlScraper = ({ onScraped, scrapedData, isLoading, setIsLoading }: UrlScraperProps) => {
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleScrape = async () => {
     if (!url.trim()) {
@@ -64,23 +59,23 @@ export const UrlScraper = ({ onScraped, scrapedData }: UrlScraperProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4 border-b border-border/30">
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="https://exemple.com"
+            placeholder="https://exemple.com ou URL personnalisée"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleScrape()}
-            className="pl-10 bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 h-11"
+            className="pl-10 bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 h-10 text-sm"
             disabled={isLoading}
           />
         </div>
         <Button 
           onClick={handleScrape} 
           disabled={isLoading || !url.trim()}
-          className="h-11 px-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm"
+          className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -91,33 +86,33 @@ export const UrlScraper = ({ onScraped, scrapedData }: UrlScraperProps) => {
       </div>
 
       {scrapedData && (
-        <div className="animate-fade-in bg-gradient-card rounded-lg border border-border/50 p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+        <div className="animate-fade-in bg-gradient-card rounded-lg border border-primary/30 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-foreground truncate">
-                {scrapedData.title || "Sans titre"}
+              <h3 className="font-medium text-foreground text-sm truncate">
+                {scrapedData.siteName || scrapedData.title || "Sans titre"}
               </h3>
               {scrapedData.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                   {scrapedData.description}
                 </p>
               )}
-              <a 
-                href={scrapedData.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {scrapedData.url}
-              </a>
+              <div className="flex items-center gap-2 mt-1.5">
+                <a 
+                  href={scrapedData.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Ouvrir
+                </a>
+                <span className="text-xs text-muted-foreground">
+                  • {scrapedData.content.length.toLocaleString()} caractères
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="pt-2 border-t border-border/30">
-            <p className="text-xs text-muted-foreground">
-              {scrapedData.content.length.toLocaleString()} caractères extraits
-            </p>
           </div>
         </div>
       )}

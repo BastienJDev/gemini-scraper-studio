@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Sparkles } from "lucide-react";
+import { Send, Loader2, Bot, User, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ScrapedData } from "@/types/site";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
-}
-
-interface ScrapedData {
-  title: string;
-  description: string;
-  content: string;
-  url: string;
 }
 
 interface ChatInterfaceProps {
@@ -28,7 +22,6 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -37,6 +30,17 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Clear messages when scraped data changes
+  useEffect(() => {
+    if (scrapedData) {
+      setMessages([]);
+    }
+  }, [scrapedData?.url]);
+
+  const clearChat = () => {
+    setMessages([]);
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -74,7 +78,6 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
       const decoder = new TextDecoder();
       let textBuffer = "";
 
-      // Add empty assistant message
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
@@ -117,7 +120,6 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
     } catch (error) {
       console.error("Chat error:", error);
       toast.error(error instanceof Error ? error.message : "Erreur lors de l'envoi");
-      // Remove the empty assistant message if there was an error
       if (!assistantContent) {
         setMessages((prev) => prev.slice(0, -1));
       }
@@ -135,20 +137,35 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header with clear button */}
+      {messages.length > 0 && (
+        <div className="px-4 py-2 border-b border-border/30 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearChat}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Effacer
+          </Button>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-card border border-border/50 flex items-center justify-center mb-4">
-              <Sparkles className="h-8 w-8 text-primary" />
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-card border border-border/50 flex items-center justify-center mb-3">
+              <Sparkles className="h-7 w-7 text-primary" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Prêt à analyser
+            <h3 className="text-base font-medium text-foreground mb-1">
+              {scrapedData ? "Prêt à analyser" : "En attente"}
             </h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
+            <p className="text-sm text-muted-foreground max-w-xs">
               {scrapedData
-                ? `Posez une question sur "${scrapedData.title || scrapedData.url}"`
-                : "Scrapez une page web puis posez vos questions"}
+                ? `Posez une question sur "${scrapedData.siteName || scrapedData.title || scrapedData.url}"`
+                : "Sélectionnez un site à scraper"}
             </p>
           </div>
         ) : (
@@ -161,13 +178,13 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
               )}
             >
               {message.role === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                  <Bot className="h-4 w-4 text-primary" />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
                 </div>
               )}
               <div
                 className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-3",
+                  "max-w-[85%] rounded-2xl px-3.5 py-2.5",
                   message.role === "user"
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary/50 text-foreground border border-border/30"
@@ -183,8 +200,8 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
                 </p>
               </div>
               {message.role === "user" && (
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-foreground" />
+                <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                  <User className="h-3.5 w-3.5 text-foreground" />
                 </div>
               )}
             </div>
@@ -194,39 +211,33 @@ export const ChatInterface = ({ scrapedData }: ChatInterfaceProps) => {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border/30 p-4 bg-card/50">
-        <div className="flex gap-3 items-end">
+      <div className="border-t border-border/30 p-3 bg-card/50">
+        <div className="flex gap-2 items-end">
           <Textarea
-            ref={textareaRef}
             placeholder={
               scrapedData
                 ? "Posez une question sur le contenu..."
-                : "Scrapez d'abord une page web..."
+                : "Scrapez d'abord un site..."
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="min-h-[52px] max-h-32 resize-none bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+            className="min-h-[44px] max-h-28 resize-none bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 text-sm"
             disabled={isLoading}
           />
           <Button
             onClick={sendMessage}
             disabled={isLoading || !input.trim()}
             size="icon"
-            className="h-[52px] w-[52px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
+            className="h-[44px] w-[44px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
           >
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </div>
-        {!scrapedData && (
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            💡 Tip: Scrapez une page pour contextualiser vos prompts
-          </p>
-        )}
       </div>
     </div>
   );
