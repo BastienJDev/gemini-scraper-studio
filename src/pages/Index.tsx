@@ -1,18 +1,21 @@
 import { useState } from "react";
-import { Zap, MessageSquare, Globe, List } from "lucide-react";
+import { Zap, Globe, List } from "lucide-react";
 import { Link } from "react-router-dom";
-import { UrlScraper } from "@/components/UrlScraper";
+import { ScraperHeader } from "@/components/ScraperHeader";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ScrapedData } from "@/types/site";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const clearScrapedData = () => {
+    setScrapedData(null);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-dark">
+    <div className="min-h-screen bg-gradient-dark flex flex-col">
       {/* Header */}
       <header className="border-b border-border/30 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,7 +34,7 @@ const Index = () => {
             <nav className="flex items-center gap-2">
               <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-primary" disabled>
                 <Globe className="h-3.5 w-3.5" />
-                URL Custom
+                Scraper
               </Button>
               <Link to="/sites">
                 <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground hover:text-foreground">
@@ -50,95 +53,18 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="grid lg:grid-cols-2 gap-4 h-[calc(100vh-6rem)]">
-          {/* Left Panel - Scraper */}
-          <div className="flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center">
-                <Globe className="h-3.5 w-3.5 text-accent" />
-              </div>
-              <div>
-                <h2 className="font-medium text-foreground text-sm">Web Scraper</h2>
-                <p className="text-[10px] text-muted-foreground">Extraire le contenu d'une URL</p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <UrlScraper
-                onScraped={setScrapedData}
-                scrapedData={scrapedData}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-              
-              {scrapedData ? (
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">Aperçu du contenu</h3>
-                    <div className="bg-secondary/30 rounded-lg border border-border/30 p-3">
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                        {scrapedData.content.substring(0, 4000)}
-                        {scrapedData.content.length > 4000 && (
-                          <span className="text-primary">
-                            {"\n\n"}... +{(scrapedData.content.length - 4000).toLocaleString()} caractères
-                          </span>
-                        )}
-                      </pre>
-                    </div>
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-card border border-border/30 flex items-center justify-center mb-4">
-                    <Globe className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="text-foreground font-medium mb-2">Aucune page scrapée</h3>
-                  <p className="text-sm text-muted-foreground max-w-xs">
-                    Entrez une URL ci-dessus pour extraire son contenu et l'analyser avec Gemini
-                  </p>
-                  <div className="mt-6 pt-6 border-t border-border/30 w-full">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Ou consultez votre liste de sites prédéfinis
-                    </p>
-                    <Link to="/sites">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <List className="h-4 w-4" />
-                        Voir ma liste de sites
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Scraper Header */}
+      <ScraperHeader
+        onScraped={setScrapedData}
+        scrapedData={scrapedData}
+        onClearScraped={clearScrapedData}
+        selectedCategories={selectedCategories}
+        onCategoriesChange={setSelectedCategories}
+      />
 
-          {/* Right Panel - Chat */}
-          <div className="flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-                <MessageSquare className="h-3.5 w-3.5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h2 className="font-medium text-foreground text-sm">Chat Gemini</h2>
-                <p className="text-[10px] text-muted-foreground">
-                  {scrapedData
-                    ? `Contexte: ${scrapedData.siteName || scrapedData.title || "Site scrapé"}`
-                    : "Scrapez une URL pour commencer"}
-                </p>
-              </div>
-              {scrapedData && (
-                <div className="px-2 py-1 rounded-md bg-primary/10 text-primary text-[10px] font-medium">
-                  Contexte actif
-                </div>
-              )}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <ChatInterface scrapedData={scrapedData} />
-            </div>
-          </div>
-        </div>
+      {/* Full Screen Chat */}
+      <main className="flex-1 flex flex-col max-w-5xl mx-auto w-full">
+        <ChatInterface scrapedData={scrapedData} selectedCategories={selectedCategories} />
       </main>
     </div>
   );
