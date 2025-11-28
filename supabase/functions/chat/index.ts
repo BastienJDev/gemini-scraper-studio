@@ -126,9 +126,17 @@ serve(async (req) => {
       
       systemPrompt += `\n\nQuand tu réponds:
 1. Base tes réponses UNIQUEMENT sur les sites listés ci-dessus
-2. Cite les sources (noms des sites) quand tu donnes des informations
-3. Si tu ne connais pas une information précise, dis-le clairement
-4. Propose des sites pertinents de la liste pour approfondir la recherche`;
+2. Si tu ne connais pas une information précise, dis-le clairement
+3. Propose des sites pertinents de la liste pour approfondir la recherche
+
+**TRÈS IMPORTANT - Citations obligatoires:**
+À la fin de CHAQUE réponse, tu DOIS inclure une section "📚 Sources" avec les liens précis des sites où tu as trouvé les informations. Format:
+
+📚 **Sources:**
+- [Nom du site](URL complète) - Information trouvée
+- [Nom du site](URL complète) - Information trouvée
+
+Si tu utilises plusieurs sources, liste-les toutes. Si tu ne peux pas citer de source précise pour une information, indique-le clairement.`;
     }
     
     // Add scraped content context if available
