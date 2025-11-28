@@ -67,8 +67,12 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       const parts = hostname.split('.');
       const tld = parts[parts.length - 1];
       
-      // TLD must be at least 2 characters (e.g., .fr, .com, .org)
-      if (tld.length < 2) return false;
+      // TLD must be between 2 and 6 characters (e.g., .fr, .com, .museum)
+      // This filters out invalid hostnames like "www.cohengresser"
+      if (tld.length < 2 || tld.length > 6) return false;
+      
+      // If starts with www, must have at least 3 parts (www.domain.tld)
+      if (parts[0] === 'www' && parts.length < 3) return false;
       
       // Hostname must be longer than 4 chars (e.g., "a.co")
       if (hostname.length < 4) return false;
