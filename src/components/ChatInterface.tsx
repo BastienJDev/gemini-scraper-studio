@@ -133,27 +133,25 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
     }
   };
 
-  // Scrape all sites from categories (with limit)
+  // Scrape all sites from categories (no limit)
   const scrapeAllSites = async (): Promise<ScrapedSite[]> => {
     const sites = getSitesForCategories();
-    // Limit to 30 sites
-    const sitesToScrape = sites.slice(0, 30);
     
-    if (sitesToScrape.length === 0) return [];
+    if (sites.length === 0) return [];
 
-    setScrapingProgress({ current: 0, total: sitesToScrape.length });
+    setScrapingProgress({ current: 0, total: sites.length });
     const scrapedSites: ScrapedSite[] = [];
 
-    // Scrape in batches of 3 for performance
-    for (let i = 0; i < sitesToScrape.length; i += 3) {
-      const batch = sitesToScrape.slice(i, i + 3);
+    // Scrape in batches of 5 for performance
+    for (let i = 0; i < sites.length; i += 5) {
+      const batch = sites.slice(i, i + 5);
       const results = await Promise.all(batch.map(site => scrapeSite(site)));
       
       results.forEach(result => {
         if (result) scrapedSites.push(result);
       });
       
-      setScrapingProgress({ current: Math.min(i + 3, sitesToScrape.length), total: sitesToScrape.length });
+      setScrapingProgress({ current: Math.min(i + 5, sites.length), total: sites.length });
     }
 
     setScrapingProgress(null);
