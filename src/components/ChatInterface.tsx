@@ -1,38 +1,37 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter } from "lucide-react";
+import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ScrapedData } from "@/types/site";
+import sitesData from "@/data/sites.json";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
+interface ScrapedSite {
+  url: string;
+  title: string;
+  content: string;
+  siteName?: string;
+}
+
 interface ChatInterfaceProps {
-  scrapedData?: ScrapedData | null;
   selectedCategories?: string[];
+  scrapedData?: ScrapedSite | null;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const SCRAPE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape`;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  droit: "DROIT",
-  federation: "FEDERATION",
-  finance: "Finance",
-  generaliste: "Generaliste",
-  presse: "PRESSE",
-  sport: "Sport",
-  syndicat: "Syndicat",
-};
-
-export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInterfaceProps) => {
+export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scrapingProgress, setScrapingProgress] = useState<{ current: number; total: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -43,14 +42,84 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    if (scrapedData) {
-      setMessages([]);
-    }
-  }, [scrapedData?.url]);
-
   const clearChat = () => {
     setMessages([]);
+  };
+
+  // Get sites from selected categories
+  const getSitesForCategories = (): Array<{ name: string; url: string; category: string }> => {
+    if (selectedCategories.length === 0) return [];
+    
+    const normalizedCategories = selectedCategories.map(c => c.toLowerCase().trim());
+    
+    return sitesData
+      .filter(site => {
+        const siteCategory = site.CATEGORIES?.toLowerCase().trim();
+        return normalizedCategories.some(cat => siteCategory?.includes(cat));
+      })
+      .map(site => ({
+        name: site.NAME,
+        url: site.URL,
+        category: site.CATEGORIES
+      }))
+      .filter(site => site.url && site.url.startsWith('http'));
+  };
+
+  // Scrape a single site
+  const scrapeSite = async (site: { name: string; url: string }): Promise<ScrapedSite | null> => {
+    try {
+      const response = await fetch(SCRAPE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ url: site.url }),
+      });
+
+      if (!response.ok) {
+        console.warn(`Failed to scrape ${site.url}`);
+        return null;
+      }
+
+      const data = await response.json();
+      return {
+        url: site.url,
+        title: data.title || site.name,
+        content: data.content?.substring(0, 5000) || "", // Limit content per site
+        siteName: site.name,
+      };
+    } catch (error) {
+      console.warn(`Error scraping ${site.url}:`, error);
+      return null;
+    }
+  };
+
+  // Scrape all sites from categories (with limit)
+  const scrapeAllSites = async (): Promise<ScrapedSite[]> => {
+    const sites = getSitesForCategories();
+    // Limit to 10 sites to avoid timeout
+    const sitesToScrape = sites.slice(0, 10);
+    
+    if (sitesToScrape.length === 0) return [];
+
+    setScrapingProgress({ current: 0, total: sitesToScrape.length });
+    const scrapedSites: ScrapedSite[] = [];
+
+    // Scrape in batches of 3 for performance
+    for (let i = 0; i < sitesToScrape.length; i += 3) {
+      const batch = sitesToScrape.slice(i, i + 3);
+      const results = await Promise.all(batch.map(site => scrapeSite(site)));
+      
+      results.forEach(result => {
+        if (result) scrapedSites.push(result);
+      });
+      
+      setScrapingProgress({ current: Math.min(i + 3, sitesToScrape.length), total: sitesToScrape.length });
+    }
+
+    setScrapingProgress(null);
+    return scrapedSites;
   };
 
   const sendMessage = async () => {
@@ -64,6 +133,20 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
     let assistantContent = "";
 
     try {
+      // First, scrape all sites from selected categories OR use provided scraped data
+      let scrapedSites: ScrapedSite[] = [];
+      
+      if (scrapedData) {
+        // Use the single scraped site from Sites page
+        scrapedSites = [scrapedData];
+      } else if (selectedCategories.length > 0) {
+        toast.info("Analyse des sites en cours...");
+        scrapedSites = await scrapeAllSites();
+        if (scrapedSites.length > 0) {
+          toast.success(`${scrapedSites.length} sites analysés`);
+        }
+      }
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -72,7 +155,7 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
         },
         body: JSON.stringify({
           messages: [...messages, userMessage],
-          scrapedContent: scrapedData,
+          scrapedSites, // Array of scraped sites with URLs
           categories: selectedCategories,
         }),
       });
@@ -137,6 +220,7 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
       }
     } finally {
       setIsLoading(false);
+      setScrapingProgress(null);
     }
   };
 
@@ -147,7 +231,8 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
     }
   };
 
-  const hasContext = scrapedData || selectedCategories.length > 0;
+  const sitesCount = getSitesForCategories().length;
+  const hasContext = selectedCategories.length > 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -155,16 +240,11 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
       {messages.length > 0 && (
         <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
-            {scrapedData && (
-              <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                📄 {scrapedData.siteName || scrapedData.title || "Site scrapé"}
-              </Badge>
-            )}
             {selectedCategories.length > 0 && (
               <div className="flex items-center gap-1">
-                <Filter className="h-3 w-3 text-muted-foreground" />
+                <Globe className="h-3 w-3 text-primary" />
                 <span className="text-xs text-muted-foreground">
-                  Recherche sur {selectedCategories.length} catégorie{selectedCategories.length > 1 ? "s" : ""}
+                  {sitesCount} site{sitesCount > 1 ? "s" : ""} dans {selectedCategories.length} catégorie{selectedCategories.length > 1 ? "s" : ""}
                 </span>
               </div>
             )}
@@ -194,8 +274,8 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
               </h3>
               <p className="text-sm text-muted-foreground max-w-md mb-6">
                 {selectedCategories.length > 0
-                  ? `Posez une question, Gemini cherchera dans les sites des catégories sélectionnées`
-                  : "Sélectionnez des catégories pour cibler votre recherche sur vos sites"}
+                  ? `${sitesCount} sites seront analysés puis Gemini fera un résumé avec les sources exactes`
+                  : "Sélectionnez des catégories pour cibler votre recherche"}
               </p>
               
               {!hasContext && (
@@ -218,10 +298,10 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
                   <p>💡 Exemples de questions :</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge variant="outline" className="cursor-default">
-                      Quels cabinets d'avocats sport existent ?
+                      Quelles actualités importantes ?
                     </Badge>
                     <Badge variant="outline" className="cursor-default">
-                      Liste les sources de presse sportive
+                      Résume les dernières infos
                     </Badge>
                   </div>
                 </div>
@@ -253,7 +333,10 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
                     {message.content || (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Recherche en cours...
+                        {scrapingProgress 
+                          ? `Analyse des sites (${scrapingProgress.current}/${scrapingProgress.total})...`
+                          : "Recherche en cours..."
+                        }
                       </span>
                     )}
                   </p>
@@ -276,7 +359,7 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
           <Textarea
             placeholder={
               selectedCategories.length > 0
-                ? "Posez votre question sur les sites sélectionnés..."
+                ? `Posez votre question (${sitesCount} sites seront analysés)...`
                 : "Sélectionnez des catégories pour commencer..."
             }
             value={input}
