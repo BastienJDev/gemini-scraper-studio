@@ -54,14 +54,25 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
     if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
     
     // Remove any extra text after URL (like "(site mentionné)")
-    const cleanUrl = url.split(' ')[0].split('(')[0].trim();
+    const cleanedUrl = url.split(' ')[0].split('(')[0].trim();
     
     try {
-      const parsed = new URL(cleanUrl);
+      const parsed = new URL(cleanedUrl);
+      const hostname = parsed.hostname;
+      
       // Must have a valid hostname with at least one dot
-      if (!parsed.hostname.includes('.')) return false;
+      if (!hostname.includes('.')) return false;
+      
+      // Get the TLD (last part after the last dot)
+      const parts = hostname.split('.');
+      const tld = parts[parts.length - 1];
+      
+      // TLD must be at least 2 characters (e.g., .fr, .com, .org)
+      if (tld.length < 2) return false;
+      
       // Hostname must be longer than 4 chars (e.g., "a.co")
-      if (parsed.hostname.length < 4) return false;
+      if (hostname.length < 4) return false;
+      
       return true;
     } catch {
       return false;
