@@ -15,56 +15,73 @@ serve(async (req) => {
     
     if (!url) {
       return new Response(
-        JSON.stringify({ error: 'URL is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'URL is required' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('Scraping URL:', url);
 
-    // Fetch the webpage
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      }
-    });
+    // Fetch the webpage with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    if (!response.ok) {
-      console.error('Failed to fetch URL:', response.status);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.log('URL returned status:', response.status);
+        return new Response(
+          JSON.stringify({ success: false, error: `HTTP ${response.status}`, url }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const html = await response.text();
+      
+      // Extract text content from HTML (basic extraction)
+      const textContent = extractTextFromHtml(html);
+      const title = extractTitle(html);
+      const description = extractMetaDescription(html);
+      
+      console.log('Scraped content length:', textContent.length);
+
       return new Response(
-        JSON.stringify({ error: `Failed to fetch URL: ${response.status}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: true,
+          title,
+          description,
+          content: textContent,
+          url
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      const errorMsg = fetchError instanceof Error ? fetchError.message : 'Fetch failed';
+      console.log('Fetch error for', url, ':', errorMsg);
+      return new Response(
+        JSON.stringify({ success: false, error: errorMsg, url }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const html = await response.text();
-    
-    // Extract text content from HTML (basic extraction)
-    const textContent = extractTextFromHtml(html);
-    const title = extractTitle(html);
-    const description = extractMetaDescription(html);
-    
-    console.log('Scraped content length:', textContent.length);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        title,
-        description,
-        content: textContent,
-        url
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
     console.error('Scraping error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to scrape website';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
