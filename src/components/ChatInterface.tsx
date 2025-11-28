@@ -13,7 +13,7 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  scrapedData: ScrapedData | null;
+  scrapedData?: ScrapedData | null;
   selectedCategories?: string[];
 }
 
@@ -152,7 +152,7 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
   return (
     <div className="flex flex-col h-full">
       {/* Header with context info */}
-      {(messages.length > 0 || hasContext) && (
+      {messages.length > 0 && (
         <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {scrapedData && (
@@ -163,25 +163,21 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
             {selectedCategories.length > 0 && (
               <div className="flex items-center gap-1">
                 <Filter className="h-3 w-3 text-muted-foreground" />
-                {selectedCategories.map((cat) => (
-                  <Badge key={cat} variant="secondary" className="text-[10px]">
-                    {CATEGORY_LABELS[cat] || cat}
-                  </Badge>
-                ))}
+                <span className="text-xs text-muted-foreground">
+                  Recherche sur {selectedCategories.length} catégorie{selectedCategories.length > 1 ? "s" : ""}
+                </span>
               </div>
             )}
           </div>
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearChat}
-              className="text-xs text-muted-foreground hover:text-foreground h-7"
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Effacer
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearChat}
+            className="text-xs text-muted-foreground hover:text-foreground h-7"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Effacer
+          </Button>
         </div>
       )}
 
@@ -189,32 +185,43 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
       <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
               <div className="w-16 h-16 rounded-2xl bg-gradient-card border border-border/50 flex items-center justify-center mb-4">
                 <Sparkles className="h-8 w-8 text-primary" />
               </div>
               <h3 className="text-xl font-medium text-foreground mb-2">
-                {hasContext ? "Prêt à analyser" : "Bienvenue sur ScrapAI"}
+                {hasContext ? "Prêt à rechercher" : "Bienvenue sur ScrapAI"}
               </h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                {scrapedData
-                  ? `Posez une question sur "${scrapedData.siteName || scrapedData.title || scrapedData.url}"`
-                  : selectedCategories.length > 0
-                  ? "Posez une question sur les catégories sélectionnées"
-                  : "Scrapez une URL ou sélectionnez des catégories pour commencer"}
+              <p className="text-sm text-muted-foreground max-w-md mb-6">
+                {selectedCategories.length > 0
+                  ? `Posez une question, Gemini cherchera dans les sites des catégories sélectionnées`
+                  : "Sélectionnez des catégories pour cibler votre recherche sur vos sites"}
               </p>
+              
               {!hasContext && (
-                <div className="mt-6 grid gap-2 text-sm text-muted-foreground">
+                <div className="space-y-4">
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5" />
+                    Utilisez le filtre "Catégories" dans la barre du haut
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Sport</Badge>
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">DROIT</Badge>
+                    <Badge variant="outline" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">PRESSE</Badge>
+                    <span className="text-muted-foreground">...</span>
+                  </div>
+                </div>
+              )}
+
+              {hasContext && (
+                <div className="grid gap-2 text-sm text-muted-foreground">
                   <p>💡 Exemples de questions :</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge variant="outline" className="cursor-default">
-                      Résume le contenu de ce site
+                      Quels cabinets d'avocats sport existent ?
                     </Badge>
                     <Badge variant="outline" className="cursor-default">
-                      Quels sont les services proposés ?
-                    </Badge>
-                    <Badge variant="outline" className="cursor-default">
-                      Trouve les informations de contact
+                      Liste les sources de presse sportive
                     </Badge>
                   </div>
                 </div>
@@ -246,7 +253,7 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
                     {message.content || (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Réflexion en cours...
+                        Recherche en cours...
                       </span>
                     )}
                   </p>
@@ -268,9 +275,9 @@ export const ChatInterface = ({ scrapedData, selectedCategories = [] }: ChatInte
         <div className="max-w-3xl mx-auto flex gap-3 items-end">
           <Textarea
             placeholder={
-              hasContext
-                ? "Posez votre question..."
-                : "Scrapez une URL pour commencer..."
+              selectedCategories.length > 0
+                ? "Posez votre question sur les sites sélectionnés..."
+                : "Sélectionnez des catégories pour commencer..."
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
