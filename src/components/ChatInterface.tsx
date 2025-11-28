@@ -46,6 +46,33 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
     setMessages([]);
   };
 
+  // Validate URL format
+  const isValidUrl = (url: string): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    
+    // Must start with http:// or https://
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+    
+    // Remove any extra text after URL (like "(site mentionné)")
+    const cleanUrl = url.split(' ')[0].split('(')[0].trim();
+    
+    try {
+      const parsed = new URL(cleanUrl);
+      // Must have a valid hostname with at least one dot
+      if (!parsed.hostname.includes('.')) return false;
+      // Hostname must be longer than 4 chars (e.g., "a.co")
+      if (parsed.hostname.length < 4) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Clean URL by removing extra text
+  const cleanUrl = (url: string): string => {
+    return url.split(' ')[0].split('(')[0].trim();
+  };
+
   // Get sites from selected categories
   const getSitesForCategories = (): Array<{ name: string; url: string; category: string }> => {
     if (selectedCategories.length === 0) return [];
@@ -59,10 +86,10 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       })
       .map(site => ({
         name: site.NAME,
-        url: site.URL,
+        url: cleanUrl(site.URL),
         category: site.CATEGORIES
       }))
-      .filter(site => site.url && site.url.startsWith('http'));
+      .filter(site => isValidUrl(site.url));
   };
 
   // Scrape a single site
