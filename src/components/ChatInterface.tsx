@@ -98,8 +98,8 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
   // Scrape all sites from categories (with limit)
   const scrapeAllSites = async (): Promise<ScrapedSite[]> => {
     const sites = getSitesForCategories();
-    // Limit to 10 sites to avoid timeout
-    const sitesToScrape = sites.slice(0, 10);
+    // Limit to 30 sites
+    const sitesToScrape = sites.slice(0, 30);
     
     if (sitesToScrape.length === 0) return [];
 
