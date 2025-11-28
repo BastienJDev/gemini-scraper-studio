@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Zap, MessageSquare, Globe, List } from "lucide-react";
 import { Link } from "react-router-dom";
-import { UrlScraper } from "@/components/UrlScraper";
+import { SiteSelector } from "@/components/SiteSelector";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ScrapedData } from "@/types/site";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
-const Index = () => {
+const Sites = () => {
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,16 +28,16 @@ const Index = () => {
 
             {/* Navigation */}
             <nav className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-primary" disabled>
-                <Globe className="h-3.5 w-3.5" />
-                URL Custom
-              </Button>
-              <Link to="/sites">
+              <Link to="/">
                 <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-muted-foreground hover:text-foreground">
-                  <List className="h-3.5 w-3.5" />
-                  Ma Liste
+                  <Globe className="h-3.5 w-3.5" />
+                  URL Custom
                 </Button>
               </Link>
+              <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-primary" disabled>
+                <List className="h-3.5 w-3.5" />
+                Ma Liste
+              </Button>
             </nav>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -52,70 +51,29 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="grid lg:grid-cols-2 gap-4 h-[calc(100vh-6rem)]">
-          {/* Left Panel - Scraper */}
-          <div className="flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
+        <div className="grid lg:grid-cols-5 gap-4 h-[calc(100vh-6rem)]">
+          {/* Left Panel - Site List */}
+          <div className="lg:col-span-2 flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
             <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
               <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center">
-                <Globe className="h-3.5 w-3.5 text-accent" />
+                <List className="h-3.5 w-3.5 text-accent" />
               </div>
               <div>
-                <h2 className="font-medium text-foreground text-sm">Web Scraper</h2>
-                <p className="text-[10px] text-muted-foreground">Extraire le contenu d'une URL</p>
+                <h2 className="font-medium text-foreground text-sm">Ma Liste de Sites</h2>
+                <p className="text-[10px] text-muted-foreground">Sélectionnez un site à scraper</p>
               </div>
             </div>
-            
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <UrlScraper
+            <div className="flex-1 overflow-hidden">
+              <SiteSelector
                 onScraped={setScrapedData}
-                scrapedData={scrapedData}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
               />
-              
-              {scrapedData ? (
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">Aperçu du contenu</h3>
-                    <div className="bg-secondary/30 rounded-lg border border-border/30 p-3">
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                        {scrapedData.content.substring(0, 4000)}
-                        {scrapedData.content.length > 4000 && (
-                          <span className="text-primary">
-                            {"\n\n"}... +{(scrapedData.content.length - 4000).toLocaleString()} caractères
-                          </span>
-                        )}
-                      </pre>
-                    </div>
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-card border border-border/30 flex items-center justify-center mb-4">
-                    <Globe className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="text-foreground font-medium mb-2">Aucune page scrapée</h3>
-                  <p className="text-sm text-muted-foreground max-w-xs">
-                    Entrez une URL ci-dessus pour extraire son contenu et l'analyser avec Gemini
-                  </p>
-                  <div className="mt-6 pt-6 border-t border-border/30 w-full">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Ou consultez votre liste de sites prédéfinis
-                    </p>
-                    <Link to="/sites">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <List className="h-4 w-4" />
-                        Voir ma liste de sites
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Right Panel - Chat */}
-          <div className="flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
+          <div className="lg:col-span-3 flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
             <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
               <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
                 <MessageSquare className="h-3.5 w-3.5 text-primary" />
@@ -125,7 +83,7 @@ const Index = () => {
                 <p className="text-[10px] text-muted-foreground">
                   {scrapedData
                     ? `Contexte: ${scrapedData.siteName || scrapedData.title || "Site scrapé"}`
-                    : "Scrapez une URL pour commencer"}
+                    : "Sélectionnez un site à analyser"}
                 </p>
               </div>
               {scrapedData && (
@@ -144,4 +102,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Sites;
