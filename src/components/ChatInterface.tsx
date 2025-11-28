@@ -119,12 +119,13 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
         body: JSON.stringify({ url: site.url }),
       });
 
-      if (!response.ok) {
-        console.warn(`Failed to scrape ${site.url}`);
+      const data = await response.json();
+      
+      // Check for success in the response data (not just HTTP status)
+      if (!data.success) {
         return null;
       }
 
-      const data = await response.json();
       return {
         url: site.url,
         title: data.title || site.name,
@@ -132,7 +133,6 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
         siteName: site.name,
       };
     } catch (error) {
-      console.warn(`Error scraping ${site.url}:`, error);
       return null;
     }
   };
