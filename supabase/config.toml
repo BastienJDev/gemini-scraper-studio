@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = false
+
+[functions.france-travail]
+verify_jwt = false
