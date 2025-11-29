@@ -1,354 +1,414 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScrapAI Auto-Login</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
-      width: 320px;
+      width: 380px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 16px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e4e4e7;
+      padding: 0;
+      min-height: 500px;
     }
-    h1 {
-      font-size: 16px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    h1::before {
-      content: "⚡";
-    }
-    .record-section {
-      background: #1e293b;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-    }
-    .record-section p {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 12px;
+    
+    .header {
+      background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+      padding: 20px;
       text-align: center;
     }
-    .record-url {
-      margin-bottom: 12px;
-    }
-    .record-url label {
-      display: block;
-      font-size: 11px;
-      color: #94a3b8;
-      margin-bottom: 4px;
-    }
-    .record-url input {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      background: #0f172a;
-      color: #e2e8f0;
-      font-size: 13px;
-    }
-    .record-url input:focus {
-      outline: none;
-      border-color: #ef4444;
-    }
-    .btn-record {
-      background: #ef4444;
+    
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
       color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-    }
-    .btn-record:hover {
-      background: #dc2626;
-    }
-    .btn-record .dot {
-      width: 8px;
-      height: 8px;
-      background: white;
-      border-radius: 50%;
-    }
-    .btn-stop {
-      background: #334155;
-      color: #e2e8f0;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 8px;
-    }
-    .btn-stop:hover {
-      background: #475569;
-    }
-    .recording-active {
-      background: #7f1d1d;
-      border: 1px solid #ef4444;
-    }
-    .recording-active .btn-record {
-      animation: pulse-bg 1s infinite;
-    }
-    @keyframes pulse-bg {
-      0%, 100% { background: #ef4444; }
-      50% { background: #dc2626; }
-    }
-    .recording-status {
-      background: #7f1d1d;
-      border: 1px solid #ef4444;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-    }
-    .recording-status .dot {
-      width: 8px;
-      height: 8px;
-      background: #ef4444;
-      border-radius: 50%;
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .hidden {
-      display: none !important;
-    }
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 16px 0;
-      color: #64748b;
-      font-size: 12px;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #334155;
-    }
-    .form-group {
-      margin-bottom: 12px;
-    }
-    label {
-      display: block;
-      font-size: 12px;
-      color: #94a3b8;
       margin-bottom: 4px;
     }
-    input {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 14px;
+    
+    .header p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
     }
-    input:focus {
-      outline: none;
-      border-color: #06b6d4;
+    
+    .content {
+      padding: 16px;
     }
-    button {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
+    
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #71717a;
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+    
+    /* Site buttons grid */
+    .sites-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .site-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
       cursor: pointer;
-      margin-top: 8px;
+      transition: all 0.2s ease;
+      text-align: center;
     }
-    .btn-primary {
-      background: #06b6d4;
-      color: #0f172a;
+    
+    .site-card:hover {
+      background: rgba(14, 165, 233, 0.15);
+      border-color: rgba(14, 165, 233, 0.5);
+      transform: translateY(-2px);
     }
-    .btn-primary:hover {
-      background: #22d3ee;
+    
+    .site-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
-    .btn-secondary {
-      background: #334155;
-      color: #e2e8f0;
+    
+    .site-card.disabled:hover {
+      transform: none;
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.1);
     }
-    .btn-secondary:hover {
-      background: #475569;
-    }
-    .status {
-      margin-top: 12px;
-      padding: 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      display: none;
-    }
-    .status.success {
-      display: block;
-      background: #065f4620;
-      border: 1px solid #10b981;
-      color: #10b981;
-    }
-    .status.error {
-      display: block;
-      background: #7f1d1d20;
-      border: 1px solid #ef4444;
-      color: #ef4444;
-    }
-    .saved-sites {
-      margin-top: 16px;
-      border-top: 1px solid #334155;
-      padding-top: 12px;
-    }
-    .saved-sites h2 {
-      font-size: 12px;
-      color: #94a3b8;
+    
+    .site-icon {
+      font-size: 32px;
       margin-bottom: 8px;
     }
-    .site-item {
+    
+    .site-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e4e4e7;
+      margin-bottom: 4px;
+    }
+    
+    .site-desc {
+      font-size: 10px;
+      color: #71717a;
+    }
+    
+    .site-status {
+      font-size: 10px;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    
+    .site-status.configured {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    
+    .site-status.not-configured {
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+    }
+    
+    /* Credentials form */
+    .credentials-section {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    
+    .credentials-section.active {
+      display: block;
+    }
+    
+    .credentials-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 10px;
-      background: #1e293b;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      font-size: 12px;
+      margin-bottom: 12px;
     }
-    .site-item .site-info {
+    
+    .credentials-title {
+      font-size: 14px;
+      font-weight: 600;
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      align-items: center;
+      gap: 8px;
     }
-    .site-item .domain {
-      color: #06b6d4;
-      font-weight: 500;
-    }
-    .site-item .meta {
-      color: #64748b;
-      font-size: 10px;
-    }
-    .site-item .actions {
-      display: flex;
-      gap: 4px;
-    }
-    .site-item button {
-      width: auto;
-      padding: 6px 10px;
-      margin: 0;
-      font-size: 12px;
-    }
-    .site-item .btn-delete {
-      background: #475569;
-    }
-    .site-item .btn-delete:hover {
-      background: #ef4444;
-    }
-    .toggle-manual {
-      font-size: 11px;
-      color: #64748b;
-      text-align: center;
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #71717a;
       cursor: pointer;
-      padding: 8px;
+      font-size: 18px;
+      padding: 4px;
     }
-    .toggle-manual:hover {
-      color: #94a3b8;
+    
+    .close-btn:hover {
+      color: #e4e4e7;
     }
-    .manual-form {
+    
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-bottom: 6px;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #e4e4e7;
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+    }
+    
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #e4e4e7;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.15);
+    }
+    
+    /* Status messages */
+    .status {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: 12px;
       display: none;
     }
-    .manual-form.show {
+    
+    .status.success {
       display: block;
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    
+    .status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .status.info {
+      display: block;
+      background: rgba(14, 165, 233, 0.2);
+      color: #0ea5e9;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    
+    /* Saved sites list */
+    .saved-sites {
+      margin-top: 16px;
+    }
+    
+    .saved-site-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .saved-site-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .saved-site-icon {
+      font-size: 20px;
+    }
+    
+    .saved-site-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .saved-site-url {
+      font-size: 10px;
+      color: #71717a;
+    }
+    
+    .saved-site-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .action-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .action-btn.connect {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    
+    .action-btn.connect:hover {
+      background: rgba(34, 197, 94, 0.3);
+    }
+    
+    .action-btn.delete {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+    .action-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Loading spinner */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #0ea5e9;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 16px 0;
+    }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 10px;
+      color: #52525b;
+      border-top: 1px solid rgba(255,255,255,0.05);
     }
   </style>
 </head>
 <body>
-  <h1>ScrapAI Auto-Login</h1>
-  
-  <!-- Recording Status (shown when recording) -->
-  <div class="recording-status hidden" id="recordingStatus">
-    <span class="dot"></span>
-    <span>Enregistrement en cours... Connecte-toi sur le site</span>
+  <div class="header">
+    <h1>🔐 ScrapAI Auto-Login</h1>
+    <p>Connexion automatique à vos bases de données</p>
   </div>
   
-  <!-- Easy Recording Section -->
-  <div class="record-section" id="recordSection">
-    <p>Connecte-toi une fois, l'extension mémorise tout !</p>
+  <div class="content">
+    <p class="section-title">Sites disponibles</p>
     
-    <div class="record-url">
-      <label>URL de la page de login</label>
-      <input type="url" id="recordUrl" placeholder="https://example.com/login">
+    <div class="sites-grid" id="sitesGrid">
+      <!-- Sites will be populated by JS -->
     </div>
     
-    <button class="btn-record" id="recordBtn">
-      <span class="dot"></span>
-      Lancer l'enregistrement
-    </button>
+    <!-- Credentials form (shown when configuring a site) -->
+    <div class="credentials-section" id="credentialsSection">
+      <div class="credentials-header">
+        <span class="credentials-title">
+          <span id="configSiteIcon"></span>
+          <span id="configSiteName"></span>
+        </span>
+        <button class="close-btn" id="closeCredentials">&times;</button>
+      </div>
+      
+      <div class="form-group">
+        <label>Identifiant</label>
+        <input type="text" id="siteUsername" placeholder="Votre identifiant">
+      </div>
+      
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="sitePassword" placeholder="Votre mot de passe">
+      </div>
+      
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="saveCredentials">Sauvegarder</button>
+        <button class="btn btn-primary" id="connectNow">Connexion →</button>
+      </div>
+      
+      <div class="status" id="status"></div>
+    </div>
     
-    <button class="btn-stop hidden" id="stopBtn">
-      ⏹ Arrêter l'enregistrement
-    </button>
+    <div class="divider"></div>
+    
+    <p class="section-title">Sites enregistrés manuellement</p>
+    <div class="saved-sites" id="savedSites">
+      <p style="font-size: 12px; color: #71717a; text-align: center; padding: 20px;">
+        Aucun site enregistré manuellement
+      </p>
+    </div>
   </div>
   
-  <div class="divider">ou configuration manuelle</div>
-  
-  <div class="toggle-manual" id="toggleManual">▼ Afficher les options manuelles</div>
-  
-  <div class="manual-form" id="manualForm">
-    <div class="form-group">
-      <label>URL de connexion</label>
-      <input type="url" id="url" placeholder="https://example.com/login">
-    </div>
-    
-    <div class="form-group">
-      <label>Email / Username</label>
-      <input type="text" id="username" placeholder="ton@email.com">
-    </div>
-    
-    <div class="form-group">
-      <label>Mot de passe</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-    
-    <div class="form-group">
-      <label>Sélecteur email (optionnel)</label>
-      <input type="text" id="usernameSelector" placeholder='input[name="email"]'>
-    </div>
-    
-    <div class="form-group">
-      <label>Sélecteur mot de passe (optionnel)</label>
-      <input type="text" id="passwordSelector" placeholder='input[name="password"]'>
-    </div>
-    
-    <div class="form-group">
-      <label>Sélecteur bouton submit (optionnel)</label>
-      <input type="text" id="submitSelector" placeholder='button[type="submit"]'>
-    </div>
-    
-    <button class="btn-primary" id="saveBtn">Sauvegarder ce site</button>
+  <div class="footer">
+    ScrapAI Extension v1.0 - Les identifiants sont stockés localement
   </div>
   
-  <div class="status" id="status"></div>
-  
-  <div class="saved-sites">
-    <h2>Sites sauvegardés</h2>
-    <div id="sitesList"></div>
-  </div>
-  
-  <script src="popup.js"></script>
+  <script src="sites-config.js"></script>
+  <script src="popup-new.js"></script>
 </body>
 </html>
