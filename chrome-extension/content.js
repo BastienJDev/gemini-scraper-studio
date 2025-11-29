@@ -93,7 +93,7 @@ function captureLogin() {
 
   console.log('[ScrapAI] Login capturé:', { ...site, password: '***' });
 
-  // Save and stop recording
+  // Save login (keep recording active)
   chrome.storage.local.get('sites', ({ sites = [] }) => {
     const domain = new URL(site.url).hostname;
     const existingIndex = sites.findIndex(s => {
@@ -106,13 +106,9 @@ function captureLogin() {
       sites.push(site);
     }
     
-    chrome.storage.local.set({ sites, isRecording: false }, () => {
-      // Remove indicator
-      const indicator = document.getElementById('scrapai-recording');
-      if (indicator) indicator.remove();
-      
-      // Show success
-      showNotification('✓ Login enregistré ! L\'extension se connectera automatiquement la prochaine fois.');
+    // Save but DON'T stop recording - user must stop manually
+    chrome.storage.local.set({ sites }, () => {
+      showNotification('✓ Login enregistré ! Arrête l\'enregistrement via l\'extension.');
     });
   });
 }
