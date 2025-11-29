@@ -48,11 +48,11 @@ interface SiteSelectorProps {
 }
 
 const CATEGORIES_LIST = [
-  "DROIT",
-  "FEDERATION",
+  "Droit",
+  "Fédération",
   "Finance",
-  "Generaliste",
-  "PRESSE",
+  "Généraliste",
+  "Presse",
   "Sport",
   "Syndicat",
   "Autre",
@@ -60,19 +60,28 @@ const CATEGORIES_LIST = [
 
 const LOCAL_STORAGE_KEY = "scrapai_custom_sites";
 
+// Helper to capitalize category names
+const capitalizeCategory = (cat: string): string => {
+  if (!cat) return "Autre";
+  const lower = cat.toLowerCase().trim();
+  if (lower === "federation") return "Fédération";
+  if (lower === "generaliste") return "Généraliste";
+  return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+};
+
 // Normalize the raw data to a consistent format
 const normalizeSites = (rawData: RawSite[]): Site[] => {
   return rawData.map((item) => {
     if (item.CATEGORIES && item.NAME && item.URL) {
       return {
-        CATEGORIES: item.CATEGORIES.trim(),
+        CATEGORIES: capitalizeCategory(item.CATEGORIES),
         NAME: item.NAME,
         URL: item.URL,
       };
     }
     if (item.Column1 && item["Nom de la Source / Média"] && item["Lien Officiel (URL)"]) {
       return {
-        CATEGORIES: item.Column1.trim(),
+        CATEGORIES: capitalizeCategory(item.Column1),
         NAME: item["Nom de la Source / Média"],
         URL: item["Lien Officiel (URL)"],
       };
@@ -229,10 +238,11 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
     const cat = category.toLowerCase();
     if (cat.includes("droit")) return "bg-blue-100 text-blue-700 border-blue-200";
     if (cat.includes("sport")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    if (cat.includes("federation")) return "bg-purple-100 text-purple-700 border-purple-200";
-    if (cat.includes("general")) return "bg-amber-100 text-amber-700 border-amber-200";
+    if (cat.includes("fédération") || cat.includes("federation")) return "bg-purple-100 text-purple-700 border-purple-200";
+    if (cat.includes("généraliste") || cat.includes("general")) return "bg-amber-100 text-amber-700 border-amber-200";
     if (cat.includes("agent")) return "bg-rose-100 text-rose-700 border-rose-200";
     if (cat.includes("media") || cat.includes("presse")) return "bg-cyan-100 text-cyan-700 border-cyan-200";
+    if (cat.includes("syndicat")) return "bg-rose-100 text-rose-700 border-rose-200";
     return "bg-secondary text-secondary-foreground border-border";
   };
 
