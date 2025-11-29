@@ -33,40 +33,10 @@ serve(async (req) => {
     console.log('Categories:', categories);
     console.log('Scraped sites count:', scrapedSites?.length || 0);
 
-    // Build system prompt with scraped content
-    let systemPrompt = `Tu es un assistant IA expert en recherche d'informations. Tu réponds en français de manière claire, structurée et précise.`;
+    // Build optimized system prompt
+    let systemPrompt = buildSystemPrompt(scrapedSites, categories);
     
-    // Add scraped content if available
-    if (scrapedSites && scrapedSites.length > 0) {
-      systemPrompt += `\n\n## CONTENU ANALYSÉ DES SITES WEB\n`;
-      systemPrompt += `Tu as accès au contenu de ${scrapedSites.length} sites web que tu DOIS utiliser pour répondre.\n\n`;
-      
-      for (const site of scrapedSites as ScrapedSite[]) {
-        systemPrompt += `---\n`;
-        systemPrompt += `### ${site.siteName || site.title}\n`;
-        systemPrompt += `**URL:** ${site.url}\n`;
-        systemPrompt += `**Contenu:**\n${site.content?.substring(0, 8000) || 'Contenu non disponible'}\n\n`;
-      }
-      
-      systemPrompt += `---\n\n`;
-      systemPrompt += `## RÈGLES STRICTES\n`;
-      systemPrompt += `1. Tu DOIS baser tes réponses UNIQUEMENT sur le contenu des sites ci-dessus\n`;
-      systemPrompt += `2. Tu ne dois JAMAIS inventer d'informations\n`;
-      systemPrompt += `3. Si une information n'est pas dans le contenu fourni, dis-le clairement\n\n`;
-      
-      systemPrompt += `## FORMAT DE RÉPONSE OBLIGATOIRE\n`;
-      systemPrompt += `À la fin de CHAQUE réponse, tu DOIS inclure une section "📚 Sources" avec les liens EXACTS des sites où tu as trouvé les informations.\n\n`;
-      systemPrompt += `Format obligatoire:\n\n`;
-      systemPrompt += `📚 **Sources consultées:**\n`;
-      
-      for (const site of scrapedSites as ScrapedSite[]) {
-        systemPrompt += `- [${site.siteName || site.title}](${site.url})\n`;
-      }
-      
-      systemPrompt += `\nPour chaque information que tu donnes, indique de quel site elle provient en utilisant les liens ci-dessus.`;
-    } else if (categories && categories.length > 0) {
-      systemPrompt += `\n\nNote: Aucun site n'a pu être analysé pour les catégories ${categories.join(', ')}. Réponds en te basant sur tes connaissances générales mais précise que tu n'as pas pu accéder aux sites sources.`;
-    }
+    console.log('System prompt length:', systemPrompt.length);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -81,6 +51,8 @@ serve(async (req) => {
           ...messages,
         ],
         stream: true,
+        temperature: 0.3, // Lower = more focused and factual
+        max_tokens: 4096, // Allow comprehensive responses
       }),
     });
 
@@ -120,3 +92,117 @@ serve(async (req) => {
     );
   }
 });
+
+function buildSystemPrompt(scrapedSites: ScrapedSite[] | undefined, categories: string[] | undefined): string {
+  const basePrompt = `# RÔLE ET IDENTITÉ
+Tu es un assistant de recherche expert, spécialisé dans l'analyse et la synthèse d'informations provenant de sources web. Tu travailles exclusivement avec les contenus qui te sont fournis.
+
+# COMPÉTENCES CLÉS
+- Analyse approfondie de contenus web
+- Synthèse claire et structurée
+- Citation précise des sources
+- Identification des informations pertinentes
+- Réponses en français de qualité professionnelle`;
+
+  if (!scrapedSites || scrapedSites.length === 0) {
+    if (categories && categories.length > 0) {
+      return `${basePrompt}
+
+# SITUATION ACTUELLE
+⚠️ Aucun contenu de site n'a pu être analysé pour les catégories: ${categories.join(', ')}.
+
+# COMPORTEMENT ATTENDU
+- Informe l'utilisateur que les sites n'ont pas pu être scrapés
+- Propose de reformuler la recherche ou de sélectionner d'autres catégories
+- Ne fournis PAS d'informations inventées`;
+    }
+    
+    return `${basePrompt}
+
+# SITUATION ACTUELLE
+Aucune catégorie n'est sélectionnée. Guide l'utilisateur pour qu'il sélectionne des catégories dans le menu de gauche afin de cibler sa recherche.`;
+  }
+
+  // Build context from scraped sites with smart truncation
+  const siteContexts = scrapedSites.map((site, index) => {
+    // Smart content extraction - keep most relevant parts
+    const content = extractRelevantContent(site.content, 6000);
+    return `
+## SOURCE ${index + 1}: ${site.siteName || site.title}
+- **URL**: ${site.url}
+- **Contenu analysé**:
+${content}
+---`;
+  }).join('\n');
+
+  return `${basePrompt}
+
+# BASE DE CONNAISSANCES (${scrapedSites.length} sources analysées)
+Les informations ci-dessous constituent ta SEULE source de vérité. Tu ne dois utiliser AUCUNE autre connaissance.
+
+${siteContexts}
+
+# RÈGLES ABSOLUES (À RESPECTER IMPÉRATIVEMENT)
+
+## 1. Fidélité aux sources
+- Utilise UNIQUEMENT les informations des sources ci-dessus
+- Ne complète JAMAIS avec des connaissances externes
+- Si une information n'est pas dans les sources, dis explicitement: "Cette information n'apparaît pas dans les sources analysées"
+
+## 2. Attribution des informations
+- Chaque fait mentionné DOIT être attribué à sa source
+- Utilise des formulations comme: "Selon [Nom du site]..." ou "D'après le contenu de [URL]..."
+- Ne fais JAMAIS de généralisation sans source
+
+## 3. Qualité de la réponse
+- Structure ta réponse avec des titres et sous-titres si pertinent
+- Sois précis et factuel
+- Évite les formulations vagues
+- Utilise des listes à puces pour les énumérations
+
+## 4. Format de citation OBLIGATOIRE
+À la FIN de CHAQUE réponse, inclus une section sources:
+
+📚 **Sources consultées:**
+${scrapedSites.map(site => `- [${site.siteName || site.title}](${site.url})`).join('\n')}
+
+# EXEMPLE DE BONNE RÉPONSE
+"D'après le contenu de **[Nom du cabinet]**, les principales actualités concernent [X]. Le site indique que [citation ou paraphrase]. 
+
+Sur **[Autre source]**, on trouve également des informations sur [Y], notamment [détails].
+
+📚 **Sources consultées:**
+- [Source 1](url1) - Information trouvée: X
+- [Source 2](url2) - Information trouvée: Y"
+
+# MAINTENANT
+Analyse la question de l'utilisateur et réponds en utilisant EXCLUSIVEMENT les sources fournies ci-dessus.`;
+}
+
+function extractRelevantContent(content: string | undefined, maxLength: number): string {
+  if (!content) return "Contenu non disponible";
+  
+  // Remove excessive whitespace and normalize
+  let cleaned = content
+    .replace(/\s+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  
+  // If content is short enough, return as is
+  if (cleaned.length <= maxLength) return cleaned;
+  
+  // Smart truncation: try to cut at sentence boundaries
+  const truncated = cleaned.substring(0, maxLength);
+  const lastSentenceEnd = Math.max(
+    truncated.lastIndexOf('. '),
+    truncated.lastIndexOf('.\n'),
+    truncated.lastIndexOf('! '),
+    truncated.lastIndexOf('? ')
+  );
+  
+  if (lastSentenceEnd > maxLength * 0.7) {
+    return truncated.substring(0, lastSentenceEnd + 1) + '\n[...]';
+  }
+  
+  return truncated + '...';
+}
