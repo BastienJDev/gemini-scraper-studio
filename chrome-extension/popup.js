@@ -1,5 +1,9 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const recordBtn = document.getElementById('recordBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const recordUrl = document.getElementById('recordUrl');
+  const recordSection = document.getElementById('recordSection');
+  const recordingStatus = document.getElementById('recordingStatus');
   const toggleManual = document.getElementById('toggleManual');
   const manualForm = document.getElementById('manualForm');
   const urlInput = document.getElementById('url');
@@ -11,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('saveBtn');
   const status = document.getElementById('status');
   const sitesList = document.getElementById('sitesList');
+
+  // Check if already recording
+  const { isRecording } = await chrome.storage.local.get('isRecording');
+  updateRecordingUI(isRecording);
 
   // Load saved sites
   loadSites();
@@ -25,23 +33,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Record button - Start recording mode
   recordBtn.addEventListener('click', async () => {
+    const targetUrl = recordUrl.value.trim();
+    
+    if (!targetUrl) {
+      showStatus('Entre l\'URL de la page de login', 'error');
+      return;
+    }
+
+    // Validate URL
+    try {
+      new URL(targetUrl);
+    } catch {
+      showStatus('URL invalide', 'error');
+      return;
+    }
+
     // Enable recording mode
     await chrome.storage.local.set({ isRecording: true });
+    updateRecordingUI(true);
     
-    // Get current tab or create new one
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Open new tab with the target URL
+    chrome.tabs.create({ url: targetUrl });
     
-    if (tab && tab.url && !tab.url.startsWith('chrome://')) {
-      // Reload current tab to activate recording
-      chrome.tabs.reload(tab.id);
-      showStatus('Mode enregistrement activé ! Connecte-toi sur la page.', 'success');
-    } else {
-      showStatus('Va sur une page de login et clique à nouveau sur Enregistrer', 'error');
-    }
-    
-    // Close popup
-    setTimeout(() => window.close(), 1500);
+    showStatus('Enregistrement activé ! Connecte-toi sur le site.', 'success');
   });
+
+  // Stop recording button
+  stopBtn.addEventListener('click', async () => {
+    await chrome.storage.local.set({ isRecording: false });
+    updateRecordingUI(false);
+    showStatus('Enregistrement arrêté', 'success');
+  });
+
+  function updateRecordingUI(isRecording) {
+    if (isRecording) {
+      recordingStatus.classList.remove('hidden');
+      recordBtn.classList.add('hidden');
+      stopBtn.classList.remove('hidden');
+      recordSection.classList.add('recording-active');
+    } else {
+      recordingStatus.classList.add('hidden');
+      recordBtn.classList.remove('hidden');
+      stopBtn.classList.add('hidden');
+      recordSection.classList.remove('recording-active');
+    }
+  }
 
   // Save site manually
   saveBtn.addEventListener('click', async () => {
