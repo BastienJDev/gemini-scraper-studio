@@ -14,12 +14,7 @@ const SITES_CONFIG = {
       { type: "waitForSelector", selector: "#username", timeout: 15000 },
       { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
       { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
-      { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 3000 },
-      { type: "waitForNavigation", delay: 4000 },
-      { type: "click", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", delay: 1500 },
-      { type: "fill", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", value: "dalloz", delay: 1000 },
-      { type: "click", selector: "[role='option']:has-text('Dalloz'), li:has-text('Dalloz'), a:has-text('Dalloz')", delay: 2000 },
-      { type: "click", selector: "a:has-text('Dalloz - Base de données'), a:has-text('Dalloz'):has-text('Base')", delay: 2000, opensPopup: true }
+      { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 3000 }
     ]
   },
   droitdusport: {
