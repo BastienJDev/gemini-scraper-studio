@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1::before {
+      content: "⚡";
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #06b6d4;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-primary {
+      background: #06b6d4;
+      color: #0f172a;
+    }
+    .btn-primary:hover {
+      background: #22d3ee;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: none;
+    }
+    .status.success {
+      display: block;
+      background: #065f4620;
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+    .status.error {
+      display: block;
+      background: #7f1d1d20;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+    .saved-sites {
+      margin-top: 16px;
+      border-top: 1px solid #334155;
+      padding-top: 12px;
+    }
+    .saved-sites h2 {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .site-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: #1e293b;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .site-item .domain {
+      color: #06b6d4;
+    }
+    .site-item button {
+      width: auto;
+      padding: 4px 8px;
+      margin: 0;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ScrapAI Auto-Login</h1>
+  
+  <div class="form-group">
+    <label>URL de connexion</label>
+    <input type="url" id="url" placeholder="https://example.com/login">
+  </div>
+  
+  <div class="form-group">
+    <label>Email / Username</label>
+    <input type="text" id="username" placeholder="ton@email.com">
+  </div>
+  
+  <div class="form-group">
+    <label>Mot de passe</label>
+    <input type="password" id="password" placeholder="••••••••">
+  </div>
+  
+  <div class="form-group">
+    <label>Sélecteur email (optionnel)</label>
+    <input type="text" id="usernameSelector" placeholder='input[name="email"]'>
+  </div>
+  
+  <div class="form-group">
+    <label>Sélecteur mot de passe (optionnel)</label>
+    <input type="text" id="passwordSelector" placeholder='input[name="password"]'>
+  </div>
+  
+  <div class="form-group">
+    <label>Sélecteur bouton submit (optionnel)</label>
+    <input type="text" id="submitSelector" placeholder='button[type="submit"]'>
+  </div>
+  
+  <button class="btn-primary" id="saveBtn">Sauvegarder ce site</button>
+  <button class="btn-secondary" id="loginBtn">Se connecter maintenant</button>
+  
+  <div class="status" id="status"></div>
+  
+  <div class="saved-sites">
+    <h2>Sites sauvegardés</h2>
+    <div id="sitesList"></div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
