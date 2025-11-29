@@ -84,6 +84,10 @@ async function executeAction(action, credentials) {
       await executeClick(action);
       break;
       
+    case 'dblclick':
+      await executeDblClick(action);
+      break;
+      
     case 'fill':
       await executeFill(action, credentials);
       break;
@@ -115,6 +119,22 @@ async function executeClick(action) {
   
   // Simulate realistic click
   simulateClick(element);
+}
+
+// Execute double-click action
+async function executeDblClick(action) {
+  const element = await findElement(action);
+  
+  if (!element) {
+    throw new Error(`Element not found: ${action.selector || action.roleName}`);
+  }
+  
+  // Scroll into view
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  await sleep(200);
+  
+  // Simulate realistic double-click
+  simulateDblClick(element);
 }
 
 // Execute fill action
@@ -320,6 +340,43 @@ function simulateClick(element) {
   // Also try native click for stubborn elements
   if (typeof element.click === 'function') {
     element.click();
+  }
+}
+
+// Simulate realistic double-click
+function simulateDblClick(element) {
+  const rect = element.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  
+  element.focus();
+  
+  // First click
+  const events1 = ['mousedown', 'mouseup', 'click'];
+  for (const eventType of events1) {
+    const event = new MouseEvent(eventType, {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: x,
+      clientY: y,
+      detail: 1
+    });
+    element.dispatchEvent(event);
+  }
+  
+  // Second click + dblclick
+  const events2 = ['mousedown', 'mouseup', 'click', 'dblclick'];
+  for (const eventType of events2) {
+    const event = new MouseEvent(eventType, {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: x,
+      clientY: y,
+      detail: eventType === 'dblclick' ? 2 : 2
+    });
+    element.dispatchEvent(event);
   }
 }
 
