@@ -5,11 +5,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ScrapedPage {
+  url: string;
+  title: string;
+  content: string;
+}
+
 interface ScrapedSite {
   url: string;
   title: string;
   content: string;
   siteName: string;
+  pages?: ScrapedPage[];
 }
 
 serve(async (req) => {
@@ -36,7 +43,7 @@ serve(async (req) => {
     // Log content sizes for debugging
     if (scrapedSites) {
       scrapedSites.forEach((site: ScrapedSite) => {
-        console.log(`Site ${site.siteName}: ${site.content?.length || 0} chars`);
+        console.log(`Site ${site.siteName}: ${site.pages?.length || 1} pages, ${site.content?.length || 0} chars`);
       });
     }
 
@@ -59,7 +66,7 @@ serve(async (req) => {
         ],
         stream: true,
         temperature: 0.4,
-        max_tokens: 8192, // Réponses longues et détaillées
+        max_tokens: 8192,
       }),
     });
 
@@ -100,6 +107,35 @@ serve(async (req) => {
   }
 });
 
+// Extract all individual pages from scraped sites
+function extractAllPages(scrapedSites: ScrapedSite[]): Array<{ siteName: string; pageUrl: string; pageTitle: string; content: string }> {
+  const allPages: Array<{ siteName: string; pageUrl: string; pageTitle: string; content: string }> = [];
+  
+  for (const site of scrapedSites) {
+    if (site.pages && site.pages.length > 0) {
+      // Use individual pages with exact URLs
+      for (const page of site.pages) {
+        allPages.push({
+          siteName: site.siteName || site.title,
+          pageUrl: page.url,
+          pageTitle: page.title,
+          content: page.content
+        });
+      }
+    } else if (site.content) {
+      // Fallback to main site content
+      allPages.push({
+        siteName: site.siteName || site.title,
+        pageUrl: site.url,
+        pageTitle: site.title,
+        content: site.content
+      });
+    }
+  }
+  
+  return allPages;
+}
+
 function buildSystemPrompt(scrapedSites: ScrapedSite[] | undefined, categories: string[] | undefined): string {
   const basePrompt = `# RÔLE
 Tu es un assistant de recherche EXHAUSTIF. Tu dois analyser EN PROFONDEUR tout le contenu fourni et donner des réponses COMPLÈTES et DÉTAILLÉES.
@@ -122,28 +158,33 @@ Informe l'utilisateur et propose de sélectionner d'autres catégories.`;
 Aucune catégorie sélectionnée. Guide l'utilisateur vers le menu de gauche.`;
   }
 
-  // Build FULL context from scraped sites with numbered references
-  const siteContexts = scrapedSites.map((site, index) => {
+  // Extract ALL individual pages with their exact URLs
+  const allPages = extractAllPages(scrapedSites);
+  
+  console.log('Total individual pages for prompt:', allPages.length);
+
+  // Build context with individual page URLs
+  const pageContexts = allPages.map((page, index) => {
     const sourceNum = index + 1;
     return `
 ═══════════════════════════════════════════════════════════════
-[${sourceNum}] ${site.siteName || site.title}
-URL: ${site.url}
+[${sourceNum}] ${page.siteName} - ${page.pageTitle}
+URL EXACTE: ${page.pageUrl}
 ═══════════════════════════════════════════════════════════════
-${site.content || "Contenu non disponible"}
+${page.content || "Contenu non disponible"}
 `;
   }).join('\n');
 
-  // Build sources list for citation at the end
-  const sourcesList = scrapedSites.map((site, index) => {
-    return `[${index + 1}] ${site.siteName || site.title} - ${site.url}`;
+  // Build sources list with exact page URLs
+  const sourcesList = allPages.map((page, index) => {
+    return `[${index + 1}] ${page.siteName} - ${page.pageUrl}`;
   }).join('\n');
 
   return `${basePrompt}
 
-# SOURCES DISPONIBLES (${scrapedSites.length} sources numérotées de [1] à [${scrapedSites.length}])
+# SOURCES DISPONIBLES (${allPages.length} pages avec URLs exactes, numérotées de [1] à [${allPages.length}])
 
-${siteContexts}
+${pageContexts}
 
 ═══════════════════════════════════════════════════════════════
 FIN DES SOURCES
@@ -157,10 +198,11 @@ Tu DOIS structurer ta réponse EXACTEMENT comme suit:
 - Réponds de manière COMPLÈTE et DÉTAILLÉE
 - Dans le texte, cite les sources avec [1], [2], [3] etc. quand tu mentionnes une information
 - Exemple: "Le projet a été lancé en 2024 [1] et a obtenu un financement majeur [2]."
+- CHAQUE information doit être suivie du numéro de source correspondant
 
 ## 2. SECTION SOURCES (OBLIGATOIRE À LA FIN)
 
-Ta réponse DOIT se terminer par cette section exacte:
+Ta réponse DOIT se terminer par cette section avec les URLs EXACTES des pages:
 
 ---
 
@@ -172,11 +214,12 @@ ${sourcesList}
 
 # RÈGLES CRITIQUES
 
-1. CITE les sources avec [1], [2], [3] dans le TEXTE quand tu utilises une info
-2. TERMINE TOUJOURS par la section "📚 Sources citées" avec les liens
-3. NE PAS inventer - utilise UNIQUEMENT le contenu fourni
-4. Sois EXHAUSTIF - parcours CHAQUE source en détail
+1. CITE les sources avec [1], [2], [3] dans le TEXTE à chaque info
+2. Les URLs dans la section sources sont les URLs EXACTES des pages (pas juste le site principal)
+3. TERMINE TOUJOURS par la section "📚 Sources citées" avec les liens exacts
+4. NE PAS inventer - utilise UNIQUEMENT le contenu fourni
+5. Sois EXHAUSTIF - parcours CHAQUE page en détail
 
 # RAPPEL FINAL
-Tu as ${scrapedSites.length} sources numérotées. Place [1], [2], etc. dans ton texte ET liste les sources à la FIN.`;
+Tu as ${allPages.length} pages avec leurs URLs exactes. Cite [1], [2], etc. dans ton texte et liste les sources à la FIN avec les URLs exactes des pages.`;
 }

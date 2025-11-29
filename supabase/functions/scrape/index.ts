@@ -12,6 +12,12 @@ const PRIORITY_PATHS = [
   '/a-la-une', '/nos-actualites', '/dernieres-actualites'
 ];
 
+interface ScrapedPage {
+  url: string;
+  title: string;
+  content: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -30,18 +36,22 @@ serve(async (req) => {
     console.log('Scraping URL:', url, 'Deep:', deep);
 
     const baseUrl = new URL(url);
-    const allContent: string[] = [];
+    const scrapedPages: ScrapedPage[] = [];
     const visitedUrls = new Set<string>();
-    let title = '';
+    let siteTitle = '';
     let description = '';
 
     // Scrape the main page first
     const mainResult = await scrapePage(url);
     if (mainResult.success) {
-      title = mainResult.title || '';
+      siteTitle = mainResult.title || '';
       description = mainResult.description || '';
       if (mainResult.content && mainResult.content.length > 100) {
-        allContent.push(`[PAGE PRINCIPALE]\n${mainResult.content}`);
+        scrapedPages.push({
+          url: url,
+          title: mainResult.title || 'Page principale',
+          content: mainResult.content
+        });
       }
       visitedUrls.add(url);
     } else {
@@ -95,29 +105,37 @@ serve(async (req) => {
             
             const result = await scrapePage(pageUrl);
             if (result.success && result.content && result.content.length > 300) {
-              const pagePath = new URL(pageUrl).pathname;
-              return `[PAGE: ${pagePath}]\n${result.content}`;
+              return {
+                url: pageUrl,
+                title: result.title || new URL(pageUrl).pathname,
+                content: result.content
+              } as ScrapedPage;
             }
             return null;
           })
         );
 
-        results.forEach(content => {
-          if (content) allContent.push(content);
+        results.forEach(page => {
+          if (page) scrapedPages.push(page);
         });
       }
     }
 
-    const combinedContent = allContent.join('\n\n---\n\n');
-    console.log('Total scraped content length:', combinedContent.length, 'from', allContent.length, 'pages');
+    // Build combined content for backward compatibility
+    const combinedContent = scrapedPages.map((p, i) => 
+      `[PAGE ${i + 1}: ${p.url}]\n${p.content}`
+    ).join('\n\n---\n\n');
+    
+    console.log('Total scraped:', scrapedPages.length, 'pages');
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        title,
+        title: siteTitle,
         description,
         content: combinedContent,
-        pagesScraped: allContent.length,
+        pages: scrapedPages, // NEW: Individual pages with URLs
+        pagesScraped: scrapedPages.length,
         url
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
