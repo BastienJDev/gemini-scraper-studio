@@ -64,7 +64,7 @@ const SITES_CONFIG = {
       { type: "fill", selector: "#searchBarJournal", value: "LexisNexis", delay: 500 },
       { type: "click", selector: "button.submit-button.button-confirm, button[aria-label='Soumettre la recherche']", delay: 2000 },
       { type: "click", selector: "mark:has-text('LexisNexis'), span:has-text('LexisNexis')", delay: 2000 },
-      { type: "clickLink", selector: "a.item-title:has-text('LexisNexis')", delay: 2000 }
+      { type: "clickLink", selector: "a.item-title:has-text('Lexis 360 Intelligence - Base de données - Abonnement - LIEN 2')", delay: 2000 }
     ]
   },
   cairn: {
