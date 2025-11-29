@@ -10,17 +10,16 @@ const SITES_CONFIG = {
       password: "Enzomatteo12@"
     },
     actions: [
-      { type: "click", selector: "button[name=\"S'inscrire\"], button:has-text('S\\'inscrire')", role: "button", roleName: "S'inscrire", delay: 1000 },
-      { type: "waitForSelector", selector: "#username", timeout: 10000 },
-      { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
-      { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
-      { type: "click", selector: "button[name='CONNEXION'], button:has-text('CONNEXION')", role: "button", roleName: "CONNEXION", delay: 2000 },
-      { type: "waitForNavigation", delay: 3000 },
-      { type: "click", selector: "[role='combobox'][name='Rechercher'], input[aria-label='Rechercher']", delay: 1000 },
-      { type: "fill", selector: "[role='combobox'][name='Rechercher'], input[aria-label='Rechercher']", value: "dalloz", delay: 1000 },
-      { type: "click", selector: "[role='option']:has-text('Dalloz')", delay: 1500 },
-      { type: "click", selector: "a:has-text('Dalloz'):not(:has-text('Base de données'))", delay: 2000 },
-      { type: "click", selector: "a:has-text('Dalloz - Base de données')", delay: 1000, opensPopup: true }
+      { type: "click", selector: "button:has-text('inscrire'), button:has-text('Inscrire'), a:has-text('inscrire'), .sign-in-btn, button.btn-primary", role: "button", roleName: "inscrire", delay: 2000 },
+      { type: "waitForSelector", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", timeout: 15000 },
+      { type: "fill", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", valueKey: "username", delay: 500 },
+      { type: "fill", selector: "#password, input[name='password'], input[name='j_password'], input[type='password']", valueKey: "password", delay: 500 },
+      { type: "click", selector: "button[type='submit'], input[type='submit'], button:has-text('Connexion'), button:has-text('CONNEXION'), button:has-text('Se connecter')", role: "button", roleName: "Connexion", delay: 3000 },
+      { type: "waitForNavigation", delay: 4000 },
+      { type: "click", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", delay: 1500 },
+      { type: "fill", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", value: "dalloz", delay: 1000 },
+      { type: "click", selector: "[role='option']:has-text('Dalloz'), li:has-text('Dalloz'), a:has-text('Dalloz')", delay: 2000 },
+      { type: "click", selector: "a:has-text('Dalloz - Base de données'), a:has-text('Dalloz'):has-text('Base')", delay: 2000, opensPopup: true }
     ]
   },
   droitdusport: {
