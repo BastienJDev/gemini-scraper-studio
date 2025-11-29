@@ -1,11 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe } from "lucide-react";
+import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe, Download, FileText, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import sitesData from "@/data/sites.json";
+import { exportToPDF, exportToWord } from "@/utils/exportDocument";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Message {
   role: "user" | "assistant";
@@ -397,6 +404,51 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                       </span>
                     )}
                   </p>
+                  {/* Export buttons for assistant messages with content */}
+                  {message.role === "assistant" && message.content && (
+                    <div className="mt-3 pt-3 border-t border-border/30 flex gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Exporter
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                await exportToPDF(message.content, "Rapport ScrapAI");
+                                toast.success("PDF exporté avec succès");
+                              } catch (e) {
+                                toast.error("Erreur lors de l'export PDF");
+                              }
+                            }}
+                          >
+                            <FileText className="h-4 w-4 mr-2 text-red-500" />
+                            Exporter en PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                await exportToWord(message.content, "Rapport ScrapAI");
+                                toast.success("Document Word exporté avec succès");
+                              } catch (e) {
+                                toast.error("Erreur lors de l'export Word");
+                              }
+                            }}
+                          >
+                            <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
+                            Exporter en Word
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
                 {message.role === "user" && (
                   <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 mt-1">

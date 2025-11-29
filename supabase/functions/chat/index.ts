@@ -127,21 +127,21 @@ Aucune catégorie sélectionnée. Guide l'utilisateur vers le menu de gauche.`;
     const sourceNum = index + 1;
     return `
 ═══════════════════════════════════════════════════════════════
-SOURCE (${sourceNum}): ${site.siteName || site.title}
+[${sourceNum}] ${site.siteName || site.title}
 URL: ${site.url}
 ═══════════════════════════════════════════════════════════════
 ${site.content || "Contenu non disponible"}
 `;
   }).join('\n');
 
-  // Build sources list for citation
+  // Build sources list for citation at the end
   const sourcesList = scrapedSites.map((site, index) => {
-    return `(${index + 1}) [${site.siteName || site.title}](${site.url})`;
+    return `[${index + 1}] ${site.siteName || site.title} - ${site.url}`;
   }).join('\n');
 
   return `${basePrompt}
 
-# SOURCES DISPONIBLES (${scrapedSites.length} sources numérotées)
+# SOURCES DISPONIBLES (${scrapedSites.length} sources numérotées de [1] à [${scrapedSites.length}])
 
 ${siteContexts}
 
@@ -149,32 +149,34 @@ ${siteContexts}
 FIN DES SOURCES
 ═══════════════════════════════════════════════════════════════
 
-# INSTRUCTIONS CRITIQUES
+# FORMAT DE RÉPONSE OBLIGATOIRE
 
-## CITATIONS (TRÈS IMPORTANT)
-- Quand tu mentionnes une information, CITE la source avec son numéro: (1), (2), (3), etc.
-- Exemple: "Le projet X a été lancé en 2024 (1) et a reçu un financement de 10M€ (2)."
-- Tu PEUX citer plusieurs sources pour une même information si elle apparaît dans plusieurs
+Tu DOIS structurer ta réponse EXACTEMENT comme suit:
 
-## EXHAUSTIVITÉ
-- Tu DOIS parcourir CHAQUE source en détail
-- Tu DOIS mentionner TOUTES les informations pertinentes trouvées
-- NE PAS faire de résumé superficiel - être COMPLET
-- Réponse LONGUE et DÉTAILLÉE attendue
+## 1. CORPS DE LA RÉPONSE
+- Réponds de manière COMPLÈTE et DÉTAILLÉE
+- Dans le texte, cite les sources avec [1], [2], [3] etc. quand tu mentionnes une information
+- Exemple: "Le projet a été lancé en 2024 [1] et a obtenu un financement majeur [2]."
 
-## FORMAT DE RÉPONSE OBLIGATOIRE
-1. Donne ta réponse complète avec des citations numérotées (1), (2), etc.
-2. Termine TOUJOURS par cette section:
+## 2. SECTION SOURCES (OBLIGATOIRE À LA FIN)
+
+Ta réponse DOIT se terminer par cette section exacte:
 
 ---
-📚 **Sources:**
+
+## 📚 Sources citées
+
 ${sourcesList}
 
-## INTERDICTIONS
-- Ne PAS inventer d'informations
-- Ne PAS utiliser de connaissances externes
-- Ne PAS oublier de citer les sources avec (1), (2), etc.
+---
 
-# RAPPEL
-Tu as ${scrapedSites.length} sources. CITE-LES avec (1), (2), etc. dans ton texte.`;
+# RÈGLES CRITIQUES
+
+1. CITE les sources avec [1], [2], [3] dans le TEXTE quand tu utilises une info
+2. TERMINE TOUJOURS par la section "📚 Sources citées" avec les liens
+3. NE PAS inventer - utilise UNIQUEMENT le contenu fourni
+4. Sois EXHAUSTIF - parcours CHAQUE source en détail
+
+# RAPPEL FINAL
+Tu as ${scrapedSites.length} sources numérotées. Place [1], [2], etc. dans ton texte ET liste les sources à la FIN.`;
 }
