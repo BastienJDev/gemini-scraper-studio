@@ -147,8 +147,8 @@ const SITES_CONFIG = {
       { type: "waitForSelector", selector: "#username", timeout: 5000 },
       { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
       { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
-      { type: "waitForSelector", selector: "button.btn-dds", timeout: 3000 },
-      { type: "click", selector: "button.btn-dds", delay: 1000 }
+      { type: "waitForSelector", selector: "div.col-12.text-center button.btn-dds", timeout: 3000 },
+      { type: "click", selector: "div.col-12.text-center button.btn-dds, button.btn-dds[type='submit']", delay: 1000 }
     ]
   }
 };
