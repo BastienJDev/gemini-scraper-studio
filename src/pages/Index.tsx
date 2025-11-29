@@ -20,16 +20,16 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-dark flex w-full">
+      <div className="min-h-screen bg-background flex w-full">
         <AppSidebar 
           selectedCategories={selectedCategories}
           onCategoryToggle={toggleCategory}
           onClearCategories={clearCategories}
         />
         
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col bg-secondary/30">
           {/* Mobile Header */}
-          <header className="md:hidden border-b border-border/30 bg-card/30 backdrop-blur-sm sticky top-0 z-10 p-3">
+          <header className="md:hidden border-b border-border bg-card sticky top-0 z-10 p-3">
             <SidebarTrigger />
           </header>
           

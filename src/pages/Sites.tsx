@@ -25,16 +25,16 @@ const Sites = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gradient-dark flex w-full">
+      <div className="min-h-screen bg-background flex w-full">
         <AppSidebar 
           selectedCategories={selectedCategories}
           onCategoryToggle={toggleCategory}
           onClearCategories={clearCategories}
         />
         
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col bg-secondary/30">
           {/* Mobile Header */}
-          <header className="md:hidden border-b border-border/30 bg-card/30 backdrop-blur-sm sticky top-0 z-10 p-3">
+          <header className="md:hidden border-b border-border bg-card sticky top-0 z-10 p-3">
             <SidebarTrigger />
           </header>
 
@@ -42,10 +42,10 @@ const Sites = () => {
           <div className="flex-1 p-4">
             <div className="grid lg:grid-cols-5 gap-4 h-[calc(100vh-2rem)] md:h-[calc(100vh-2rem)]">
               {/* Left Panel - Site List */}
-              <div className="lg:col-span-2 flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
-                <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center">
-                    <List className="h-3.5 w-3.5 text-accent" />
+              <div className="lg:col-span-2 flex flex-col bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                    <List className="h-3.5 w-3.5 text-primary-foreground" />
                   </div>
                   <div>
                     <h2 className="font-medium text-foreground text-sm">Ma Liste de Sites</h2>
@@ -62,10 +62,10 @@ const Sites = () => {
               </div>
 
               {/* Right Panel - Chat */}
-              <div className="lg:col-span-3 flex flex-col bg-card/50 rounded-xl border border-border/30 overflow-hidden">
-                <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              <div className="lg:col-span-3 flex flex-col bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-border flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary-foreground" />
                   </div>
                   <div className="flex-1">
                     <h2 className="font-medium text-foreground text-sm">Chat Gemini</h2>

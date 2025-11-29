@@ -32,13 +32,13 @@ const AUTO_LOGIN_SITES = [
 ];
 
 const CATEGORIES = [
-  { id: "droit", label: "DROIT", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  { id: "federation", label: "FEDERATION", color: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-  { id: "finance", label: "Finance", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-  { id: "generaliste", label: "Generaliste", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  { id: "presse", label: "PRESSE", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
-  { id: "sport", label: "Sport", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-  { id: "syndicat", label: "Syndicat", color: "bg-rose-500/20 text-rose-400 border-rose-500/30" },
+  { id: "droit", label: "DROIT", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  { id: "federation", label: "FEDERATION", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { id: "finance", label: "Finance", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  { id: "generaliste", label: "Generaliste", color: "bg-orange-100 text-orange-700 border-orange-200" },
+  { id: "presse", label: "PRESSE", color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+  { id: "sport", label: "Sport", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  { id: "syndicat", label: "Syndicat", color: "bg-rose-100 text-rose-700 border-rose-200" },
 ];
 
 const navItems = [
@@ -76,12 +76,12 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="border-r border-border/30">
+    <Sidebar className="border-r border-border bg-card">
       {/* Header */}
-      <SidebarHeader className="border-b border-border/30 p-4">
+      <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center glow-primary-sm flex-shrink-0">
-            <Zap className="h-4 w-4 text-primary" />
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center glow-primary-sm flex-shrink-0">
+            <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
           {!collapsed && (
             <div>
@@ -102,11 +102,11 @@ export function AppSidebar({
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <NavLink 
+              <NavLink 
                     to={item.url} 
                     end 
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
-                    activeClassName="bg-primary/10 text-primary border-l-2 border-primary"
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+                    activeClassName="bg-primary/10 text-primary font-medium"
                   >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                     {!collapsed && <span className="text-sm">{item.title}</span>}
@@ -135,7 +135,7 @@ export function AppSidebar({
                       <button
                         key={site.id}
                         onClick={() => triggerAutoLogin(site.id, site.name)}
-                        className="flex items-center gap-2 w-full text-left hover:bg-primary/10 rounded-md p-2 transition-colors text-sm group"
+                        className="flex items-center gap-2 w-full text-left hover:bg-secondary rounded-md p-2 transition-colors text-sm group text-muted-foreground hover:text-foreground"
                       >
                         <span>{site.icon}</span>
                         <span className="flex-1">{site.name}</span>
@@ -169,7 +169,7 @@ export function AppSidebar({
                 {CATEGORIES.map((category) => (
                   <label
                     key={category.id}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-secondary/30 rounded-md p-2 transition-colors"
+                    className="flex items-center gap-2 cursor-pointer hover:bg-secondary rounded-md p-2 transition-colors"
                   >
                     <Checkbox
                       checked={selectedCategories.includes(category.id)}
@@ -197,7 +197,7 @@ export function AppSidebar({
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="border-t border-border/30 p-4">
+      <SidebarFooter className="border-t border-border p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
             <Globe className="h-3.5 w-3.5 text-primary" />

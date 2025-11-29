@@ -155,26 +155,26 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
 
   const getCategoryColor = (category: string): string => {
     const cat = category.toLowerCase();
-    if (cat.includes("droit")) return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    if (cat.includes("sport")) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-    if (cat.includes("federation")) return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-    if (cat.includes("general")) return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-    if (cat.includes("agent")) return "bg-rose-500/20 text-rose-400 border-rose-500/30";
-    if (cat.includes("media") || cat.includes("presse")) return "bg-cyan-500/20 text-cyan-400 border-cyan-500/30";
+    if (cat.includes("droit")) return "bg-blue-100 text-blue-700 border-blue-200";
+    if (cat.includes("sport")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (cat.includes("federation")) return "bg-purple-100 text-purple-700 border-purple-200";
+    if (cat.includes("general")) return "bg-amber-100 text-amber-700 border-amber-200";
+    if (cat.includes("agent")) return "bg-rose-100 text-rose-700 border-rose-200";
+    if (cat.includes("media") || cat.includes("presse")) return "bg-cyan-100 text-cyan-700 border-cyan-200";
     return "bg-secondary text-secondary-foreground border-border";
   };
 
   return (
     <div className="flex flex-col h-full">
       {/* Search */}
-      <div className="p-4 border-b border-border/30">
+      <div className="p-4 border-b border-border">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher un site..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-secondary/50 border-border/50 focus:border-primary/50"
+            className="pl-10 bg-background border-border focus:border-primary"
           />
         </div>
         <p className="text-xs text-muted-foreground mt-2">
@@ -192,7 +192,7 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
               onOpenChange={() => toggleCategory(category)}
             >
               <CollapsibleTrigger asChild>
-                <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-secondary/50 transition-colors group">
+                <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors group">
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
@@ -217,9 +217,9 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
                   {filteredSitesByCategory[category].map((site, index) => (
                     <div
                       key={`${site.URL}-${index}`}
-                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/30 transition-colors group"
+                      className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary transition-colors group"
                     >
-                      <div className="w-7 h-7 rounded-md bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                      <div className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center flex-shrink-0">
                         <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -235,7 +235,7 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
                           href={site.URL.startsWith("http") ? site.URL : `https://${site.URL}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
+                          className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
