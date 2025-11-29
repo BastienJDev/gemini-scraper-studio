@@ -21,6 +21,63 @@
     h1::before {
       content: "⚡";
     }
+    .record-section {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .record-section p {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+    .btn-record {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .btn-record:hover {
+      background: #dc2626;
+    }
+    .btn-record .dot {
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+    }
+    .btn-record.recording {
+      animation: pulse-bg 1s infinite;
+    }
+    @keyframes pulse-bg {
+      0%, 100% { background: #ef4444; }
+      50% { background: #dc2626; }
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      color: #64748b;
+      font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #334155;
+    }
     .form-group {
       margin-bottom: 12px;
     }
@@ -109,49 +166,83 @@
     .site-item .domain {
       color: #06b6d4;
     }
+    .site-item .actions {
+      display: flex;
+      gap: 4px;
+    }
     .site-item button {
       width: auto;
       padding: 4px 8px;
       margin: 0;
       font-size: 11px;
     }
+    .toggle-manual {
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      cursor: pointer;
+      padding: 8px;
+    }
+    .toggle-manual:hover {
+      color: #94a3b8;
+    }
+    .manual-form {
+      display: none;
+    }
+    .manual-form.show {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <h1>ScrapAI Auto-Login</h1>
   
-  <div class="form-group">
-    <label>URL de connexion</label>
-    <input type="url" id="url" placeholder="https://example.com/login">
+  <!-- Easy Recording Section -->
+  <div class="record-section">
+    <p>Connecte-toi une fois, l'extension mémorise tout !</p>
+    <button class="btn-record" id="recordBtn">
+      <span class="dot"></span>
+      Enregistrer un login
+    </button>
   </div>
   
-  <div class="form-group">
-    <label>Email / Username</label>
-    <input type="text" id="username" placeholder="ton@email.com">
-  </div>
+  <div class="divider">ou configuration manuelle</div>
   
-  <div class="form-group">
-    <label>Mot de passe</label>
-    <input type="password" id="password" placeholder="••••••••">
-  </div>
+  <div class="toggle-manual" id="toggleManual">▼ Afficher les options manuelles</div>
   
-  <div class="form-group">
-    <label>Sélecteur email (optionnel)</label>
-    <input type="text" id="usernameSelector" placeholder='input[name="email"]'>
+  <div class="manual-form" id="manualForm">
+    <div class="form-group">
+      <label>URL de connexion</label>
+      <input type="url" id="url" placeholder="https://example.com/login">
+    </div>
+    
+    <div class="form-group">
+      <label>Email / Username</label>
+      <input type="text" id="username" placeholder="ton@email.com">
+    </div>
+    
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+    
+    <div class="form-group">
+      <label>Sélecteur email (optionnel)</label>
+      <input type="text" id="usernameSelector" placeholder='input[name="email"]'>
+    </div>
+    
+    <div class="form-group">
+      <label>Sélecteur mot de passe (optionnel)</label>
+      <input type="text" id="passwordSelector" placeholder='input[name="password"]'>
+    </div>
+    
+    <div class="form-group">
+      <label>Sélecteur bouton submit (optionnel)</label>
+      <input type="text" id="submitSelector" placeholder='button[type="submit"]'>
+    </div>
+    
+    <button class="btn-primary" id="saveBtn">Sauvegarder ce site</button>
   </div>
-  
-  <div class="form-group">
-    <label>Sélecteur mot de passe (optionnel)</label>
-    <input type="text" id="passwordSelector" placeholder='input[name="password"]'>
-  </div>
-  
-  <div class="form-group">
-    <label>Sélecteur bouton submit (optionnel)</label>
-    <input type="text" id="submitSelector" placeholder='button[type="submit"]'>
-  </div>
-  
-  <button class="btn-primary" id="saveBtn">Sauvegarder ce site</button>
-  <button class="btn-secondary" id="loginBtn">Se connecter maintenant</button>
   
   <div class="status" id="status"></div>
   

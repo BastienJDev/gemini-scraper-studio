@@ -1,10 +1,171 @@
-// Content script - Auto-detect login pages and offer to fill
+// Content script - Auto-detect and record login
 (async () => {
+  // Check if recording mode is active
+  const { isRecording } = await chrome.storage.local.get('isRecording');
+  
+  if (isRecording) {
+    // RECORDING MODE - Capture user's login
+    setupRecording();
+  } else {
+    // AUTO-FILL MODE - Fill saved credentials
+    autoFillIfSaved();
+  }
+})();
+
+function setupRecording() {
+  console.log('[ScrapAI] Mode enregistrement activé');
+  
+  // Show recording indicator
+  const indicator = document.createElement('div');
+  indicator.id = 'scrapai-recording';
+  indicator.innerHTML = `
+    <style>
+      #scrapai-recording {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #ef4444;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-family: -apple-system, sans-serif;
+        font-size: 14px;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      #scrapai-recording .dot {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+    </style>
+    <span class="dot"></span>
+    <span>Enregistrement... Connecte-toi normalement</span>
+  `;
+  document.body.appendChild(indicator);
+
+  // Track form submissions
+  document.addEventListener('submit', captureLogin, true);
+  
+  // Track click on buttons that might submit
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button, input[type="submit"], [role="button"]');
+    if (btn) {
+      setTimeout(() => captureLogin(), 100);
+    }
+  }, true);
+}
+
+function captureLogin() {
+  // Find password field (key indicator of login form)
+  const passwordField = document.querySelector('input[type="password"]');
+  if (!passwordField || !passwordField.value) return;
+
+  // Find username/email field
+  const form = passwordField.closest('form') || document;
+  const usernameField = form.querySelector(
+    'input[type="email"], input[name="email"], input[name="username"], input[name="login"], input[type="text"]'
+  );
+  
+  if (!usernameField || !usernameField.value) return;
+
+  // Find submit button
+  const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
+
+  // Build selectors
+  const site = {
+    url: window.location.href,
+    username: usernameField.value,
+    password: passwordField.value,
+    usernameSelector: buildSelector(usernameField),
+    passwordSelector: buildSelector(passwordField),
+    submitSelector: submitBtn ? buildSelector(submitBtn) : 'button[type="submit"]'
+  };
+
+  console.log('[ScrapAI] Login capturé:', { ...site, password: '***' });
+
+  // Save and stop recording
+  chrome.storage.local.get('sites', ({ sites = [] }) => {
+    const domain = new URL(site.url).hostname;
+    const existingIndex = sites.findIndex(s => {
+      try { return new URL(s.url).hostname === domain; } catch { return false; }
+    });
+    
+    if (existingIndex >= 0) {
+      sites[existingIndex] = site;
+    } else {
+      sites.push(site);
+    }
+    
+    chrome.storage.local.set({ sites, isRecording: false }, () => {
+      // Remove indicator
+      const indicator = document.getElementById('scrapai-recording');
+      if (indicator) indicator.remove();
+      
+      // Show success
+      showNotification('✓ Login enregistré ! L\'extension se connectera automatiquement la prochaine fois.');
+    });
+  });
+}
+
+function buildSelector(element) {
+  // Try ID first
+  if (element.id) return `#${element.id}`;
+  
+  // Try name
+  if (element.name) return `${element.tagName.toLowerCase()}[name="${element.name}"]`;
+  
+  // Try type for inputs
+  if (element.type && element.tagName === 'INPUT') {
+    return `input[type="${element.type}"]`;
+  }
+  
+  // Fallback to tag
+  return element.tagName.toLowerCase();
+}
+
+function showNotification(message) {
+  const notif = document.createElement('div');
+  notif.innerHTML = `
+    <style>
+      .scrapai-notif {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: -apple-system, sans-serif;
+        font-size: 14px;
+        z-index: 999999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+      }
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    </style>
+    <div class="scrapai-notif">${message}</div>
+  `;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.remove(), 4000);
+}
+
+async function autoFillIfSaved() {
   // Check if this looks like a login page
   const hasPasswordField = document.querySelector('input[type="password"]');
-  const hasEmailField = document.querySelector('input[type="email"], input[name="email"], input[name="username"]');
-  
-  if (!hasPasswordField || !hasEmailField) return;
+  if (!hasPasswordField) return;
 
   // Check if we have saved credentials for this domain
   const { sites = [] } = await chrome.storage.local.get('sites');
@@ -19,7 +180,8 @@
   });
 
   if (matchingSite) {
-    // Auto-fill after a short delay
+    console.log('[ScrapAI] Site reconnu, remplissage auto...');
+    
     setTimeout(() => {
       // Find username field
       const usernameField = document.querySelector(matchingSite.usernameSelector);
@@ -37,7 +199,7 @@
         passwordField.dispatchEvent(new Event('change', { bubbles: true }));
       }
 
-      console.log('[ScrapAI] Identifiants remplis automatiquement');
-    }, 1500);
+      showNotification('✓ Identifiants remplis automatiquement');
+    }, 1000);
   }
-})();
+}
