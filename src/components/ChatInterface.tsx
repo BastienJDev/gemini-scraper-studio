@@ -19,11 +19,18 @@ interface Message {
   content: string;
 }
 
+interface ScrapedPage {
+  url: string;
+  title: string;
+  content: string;
+}
+
 interface ScrapedSite {
   url: string;
   title: string;
   content: string;
   siteName?: string;
+  pages?: ScrapedPage[]; // Individual pages with exact URLs
 }
 
 interface ChatInterfaceProps {
@@ -138,8 +145,9 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       return {
         url: site.url,
         title: data.title || site.name,
-        content: data.content || "", // Full content - no truncation
+        content: data.content || "",
         siteName: site.name,
+        pages: data.pages || [], // Individual pages with exact URLs
       };
     } catch (error) {
       return null;
