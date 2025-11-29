@@ -178,16 +178,31 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       // First, scrape all sites from selected categories OR use provided scraped data
       let scrapedSites: ScrapedSite[] = [];
       
+      console.log("[ChatInterface] Selected categories:", selectedCategories);
+      console.log("[ChatInterface] Sites for categories:", getSitesForCategories().length);
+      
       if (scrapedData) {
         // Use the single scraped site from Sites page
         scrapedSites = [scrapedData];
+        console.log("[ChatInterface] Using provided scrapedData");
       } else if (selectedCategories.length > 0) {
         toast.info("Analyse des sites en cours...");
         scrapedSites = await scrapeAllSites();
+        console.log("[ChatInterface] Scraped sites count:", scrapedSites.length);
+        console.log("[ChatInterface] Total content length:", scrapedSites.reduce((acc, s) => acc + (s.content?.length || 0), 0));
         if (scrapedSites.length > 0) {
           toast.success(`${scrapedSites.length} sites analysés`);
         }
+      } else {
+        console.log("[ChatInterface] No categories selected, no scraping");
       }
+
+      console.log("[ChatInterface] Sending to chat API:", {
+        messagesCount: messages.length + 1,
+        scrapedSitesCount: scrapedSites.length,
+        categoriesCount: selectedCategories.length,
+        categories: selectedCategories,
+      });
 
       const response = await fetch(CHAT_URL, {
         method: "POST",
