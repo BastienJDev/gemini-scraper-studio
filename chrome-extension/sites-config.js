@@ -61,7 +61,7 @@ const SITES_CONFIG = {
       { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
       { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 4000 },
       { type: "waitForSelector", selector: "#searchBar", timeout: 15000 },
-      { type: "fill", selector: "#searchBar", value: "LexisNexis", delay: 500 },
+      { type: "fill", selector: "#searchBar", value: "Lexis 360 Intelligence", delay: 500 },
       { type: "click", selector: "md-icon[md-svg-icon='primo-ui:magnifying-glass'], button[aria-label='Rechercher']", delay: 3000 },
       { type: "click", selector: "img.main-img.fan-img-1", delay: 2000 },
       { type: "clickLink", selector: "a.item-title:has-text('Lexis 360 Intelligence - Base de données - Abonnement - LIEN 2')", delay: 2000 }
