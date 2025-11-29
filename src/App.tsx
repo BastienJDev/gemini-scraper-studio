@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Sites from "./pages/Sites";
 import Playwright from "./pages/Playwright";
+import ScraperConfig from "./pages/ScraperConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/sites" element={<Sites />} />
           <Route path="/playwright" element={<Playwright />} />
+          <Route path="/scraper-config" element={<ScraperConfig />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
