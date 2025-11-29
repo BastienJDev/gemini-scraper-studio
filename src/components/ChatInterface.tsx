@@ -36,13 +36,25 @@ interface ScrapedSite {
 
 interface ChatInterfaceProps {
   selectedCategories?: string[];
+  onCategoryToggle?: (categoryId: string) => void;
+  onClearCategories?: () => void;
   scrapedData?: ScrapedSite | null;
 }
+
+const CATEGORIES = [
+  { id: "droit", label: "Droit", color: "bg-blue-500/20 text-blue-700 border-blue-500/30" },
+  { id: "federation", label: "Fédération", color: "bg-purple-500/20 text-purple-700 border-purple-500/30" },
+  { id: "finance", label: "Finance", color: "bg-amber-500/20 text-amber-700 border-amber-500/30" },
+  { id: "generaliste", label: "Généraliste", color: "bg-orange-500/20 text-orange-700 border-orange-500/30" },
+  { id: "presse", label: "Presse", color: "bg-cyan-500/20 text-cyan-700 border-cyan-500/30" },
+  { id: "sport", label: "Sport", color: "bg-emerald-500/20 text-emerald-700 border-emerald-500/30" },
+  { id: "syndicat", label: "Syndicat", color: "bg-rose-500/20 text-rose-700 border-rose-500/30" },
+];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SCRAPE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape`;
 
-export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInterfaceProps) => {
+export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onClearCategories, scrapedData }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -475,31 +487,66 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
 
       {/* Input */}
       <div className="border-t border-border p-4 bg-card">
-        <div className="max-w-3xl mx-auto flex gap-3 items-end">
-          <Textarea
-            placeholder={
-              selectedCategories.length > 0
-                ? `Posez votre question (${sitesCount} sites seront analysés)...`
-                : "Sélectionnez des catégories pour commencer..."
-            }
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
-            disabled={isLoading}
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={isLoading || !input.trim()}
-            size="icon"
-            className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
+        <div className="max-w-3xl mx-auto space-y-3">
+          {/* Category filter above prompt */}
+          {onCategoryToggle && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              {CATEGORIES.map((category) => (
+                <Badge
+                  key={category.id}
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer transition-all text-xs",
+                    selectedCategories.includes(category.id)
+                      ? category.color + " ring-1 ring-offset-1"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => onCategoryToggle(category.id)}
+                >
+                  {category.label}
+                </Badge>
+              ))}
+              {selectedCategories.length > 0 && onClearCategories && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                  onClick={onClearCategories}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Tout effacer
+                </Button>
+              )}
+            </div>
+          )}
+          
+          <div className="flex gap-3 items-end">
+            <Textarea
+              placeholder={
+                selectedCategories.length > 0
+                  ? `Posez votre question (${sitesCount} sites seront analysés)...`
+                  : "Sélectionnez des catégories pour commencer..."
+              }
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
