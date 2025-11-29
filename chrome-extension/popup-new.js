@@ -47,10 +47,13 @@ async function openSiteConfig(siteId) {
   const storedCredentials = await getStoredCredentials();
   const creds = storedCredentials[siteId] || {};
   
+  // Use stored credentials, or fallback to hardcoded defaults from config
+  const defaultCreds = config.credentials || {};
+  
   document.getElementById('configSiteIcon').textContent = config.icon;
   document.getElementById('configSiteName').textContent = config.name;
-  document.getElementById('siteUsername').value = creds.username || '';
-  document.getElementById('sitePassword').value = creds.password || '';
+  document.getElementById('siteUsername').value = creds.username || defaultCreds.username || '';
+  document.getElementById('sitePassword').value = creds.password || defaultCreds.password || '';
   
   document.getElementById('credentialsSection').classList.add('active');
   hideStatus();

@@ -6,8 +6,8 @@ const SITES_CONFIG = {
     description: "Base de données juridique via BU",
     startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
     credentials: {
-      username: "",
-      password: ""
+      username: "ep462599",
+      password: "Enzomatteo12@"
     },
     actions: [
       { type: "click", selector: "button[name=\"S'inscrire\"], button:has-text('S\\'inscrire')", role: "button", roleName: "S'inscrire", delay: 1000 },
