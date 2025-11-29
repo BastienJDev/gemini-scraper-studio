@@ -34,11 +34,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.type === 'ADD_ACTION') {
     if (recordingSession.isRecording) {
-      // Check if it's an input update (same selector)
+      // Check if it's an input update (same selectors)
       if (message.action.type === 'input') {
-        const existingIndex = recordingSession.actions.findIndex(
-          a => a.type === 'input' && a.selector === message.action.selector
-        );
+        const newSelectors = message.action.selectors || [];
+        const existingIndex = recordingSession.actions.findIndex(a => {
+          if (a.type !== 'input') return false;
+          const existingSelectors = a.selectors || [];
+          // Check if any selector matches
+          return existingSelectors.some(s => newSelectors.includes(s)) || 
+                 a.inputType === message.action.inputType;
+        });
         if (existingIndex >= 0) {
           recordingSession.actions[existingIndex] = message.action;
         } else {

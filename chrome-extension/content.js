@@ -110,6 +110,74 @@ async function setupActionRecorder() {
     countEl.textContent = `${count} actions`;
   };
   
+  // Build multiple selectors for robustness
+  function buildSelectors(element) {
+    const selectors = [];
+    
+    // ID selector (most reliable)
+    if (element.id) {
+      selectors.push(`#${element.id}`);
+    }
+    
+    // Name selector
+    if (element.name) {
+      selectors.push(`[name="${element.name}"]`);
+      selectors.push(`${element.tagName.toLowerCase()}[name="${element.name}"]`);
+    }
+    
+    // Type selector for inputs
+    if (element.tagName === 'INPUT' && element.type) {
+      selectors.push(`input[type="${element.type}"]`);
+    }
+    
+    // Placeholder selector
+    if (element.placeholder) {
+      selectors.push(`[placeholder="${element.placeholder}"]`);
+    }
+    
+    // aria-label selector
+    if (element.getAttribute('aria-label')) {
+      selectors.push(`[aria-label="${element.getAttribute('aria-label')}"]`);
+    }
+    
+    // data-testid selector
+    if (element.getAttribute('data-testid')) {
+      selectors.push(`[data-testid="${element.getAttribute('data-testid')}"]`);
+    }
+    
+    // Class-based selector
+    if (element.className && typeof element.className === 'string') {
+      const classes = element.className.trim().split(/\s+/);
+      if (classes.length > 0 && classes[0]) {
+        selectors.push(`${element.tagName.toLowerCase()}.${classes.slice(0, 2).join('.')}`);
+      }
+    }
+    
+    // Path-based selector (fallback)
+    const path = [];
+    let el = element;
+    while (el && el !== document.body && path.length < 4) {
+      let selector = el.tagName.toLowerCase();
+      if (el.id) {
+        selector = `#${el.id}`;
+        path.unshift(selector);
+        break;
+      }
+      const siblings = el.parentElement ? Array.from(el.parentElement.children).filter(s => s.tagName === el.tagName) : [];
+      if (siblings.length > 1) {
+        const index = siblings.indexOf(el) + 1;
+        selector += `:nth-of-type(${index})`;
+      }
+      path.unshift(selector);
+      el = el.parentElement;
+    }
+    if (path.length > 0) {
+      selectors.push(path.join(' > '));
+    }
+    
+    return selectors;
+  }
+  
   // Record clicks
   document.addEventListener('click', async (e) => {
     if (e.target.closest('#scrapai-recorder')) return;
@@ -117,7 +185,9 @@ async function setupActionRecorder() {
     const action = {
       type: 'click',
       time: Date.now() - startTime,
-      selector: buildSelector(e.target),
+      selectors: buildSelectors(e.target),
+      tagName: e.target.tagName,
+      innerText: e.target.innerText?.slice(0, 50),
       x: e.clientX,
       y: e.clientY
     };
@@ -125,27 +195,28 @@ async function setupActionRecorder() {
     const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
     if (response.success) {
       updateCount(response.count);
-      console.log('[ScrapAI] Click enregistré:', action.selector);
+      console.log('[ScrapAI] Click enregistré:', action.selectors);
     }
   }, true);
   
   // Record typing
   document.addEventListener('input', async (e) => {
     if (e.target.closest('#scrapai-recorder')) return;
-    if (!e.target.matches('input, textarea')) return;
+    if (!e.target.matches('input, textarea, [contenteditable]')) return;
     
     const action = {
       type: 'input',
       time: Date.now() - startTime,
-      selector: buildSelector(e.target),
+      selectors: buildSelectors(e.target),
       value: e.target.value,
-      inputType: e.target.type || 'text'
+      inputType: e.target.type || 'text',
+      tagName: e.target.tagName
     };
     
     const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
     if (response.success) {
       updateCount(response.count);
-      console.log('[ScrapAI] Input enregistré:', action.selector);
+      console.log('[ScrapAI] Input enregistré:', action.selectors);
     }
   }, true);
   
@@ -156,7 +227,7 @@ async function setupActionRecorder() {
       const action = {
         type: 'enter',
         time: Date.now() - startTime,
-        selector: buildSelector(e.target)
+        selectors: buildSelectors(e.target)
       };
       
       const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
@@ -194,28 +265,6 @@ async function setupActionRecorder() {
   });
 }
 
-function buildSelector(element) {
-  if (element.id) return `#${element.id}`;
-  if (element.name) return `${element.tagName.toLowerCase()}[name="${element.name}"]`;
-  if (element.type && element.tagName === 'INPUT') {
-    return `input[type="${element.type}"]`;
-  }
-  
-  // Build a path
-  const path = [];
-  let el = element;
-  while (el && el !== document.body) {
-    let selector = el.tagName.toLowerCase();
-    if (el.className && typeof el.className === 'string') {
-      const classes = el.className.trim().split(/\s+/).slice(0, 2).join('.');
-      if (classes) selector += '.' + classes;
-    }
-    path.unshift(selector);
-    el = el.parentElement;
-  }
-  return path.slice(-3).join(' > ');
-}
-
 function showNotification(message, isError = false) {
   const notif = document.createElement('div');
   notif.innerHTML = `
@@ -249,50 +298,159 @@ async function autoFillIfSaved() {
   const { sites = [] } = await chrome.storage.local.get('sites');
   const currentDomain = window.location.hostname;
   
+  console.log('[ScrapAI] Vérification auto-login pour:', currentDomain);
+  console.log('[ScrapAI] Sites sauvegardés:', sites.length);
+  
   const matchingSite = sites.find(site => {
     try {
-      return new URL(site.url).hostname === currentDomain;
+      const siteDomain = new URL(site.url).hostname;
+      console.log('[ScrapAI] Comparaison:', siteDomain, 'vs', currentDomain);
+      return siteDomain === currentDomain;
     } catch {
       return false;
     }
   });
 
-  if (!matchingSite) return;
+  if (!matchingSite) {
+    console.log('[ScrapAI] Aucun site correspondant trouvé');
+    return;
+  }
+  
+  console.log('[ScrapAI] Site trouvé:', matchingSite.url);
+  console.log('[ScrapAI] Actions:', matchingSite.actions?.length || 0);
   
   // If site has recorded actions, replay them
   if (matchingSite.actions && matchingSite.actions.length > 0) {
-    console.log('[ScrapAI] Replay de', matchingSite.actions.length, 'actions...');
+    console.log('[ScrapAI] Démarrage replay de', matchingSite.actions.length, 'actions...');
     showNotification('▶ Connexion automatique...');
     
-    setTimeout(() => replayActions(matchingSite.actions), 1000);
+    // Wait for page to be fully loaded
+    if (document.readyState !== 'complete') {
+      await new Promise(resolve => window.addEventListener('load', resolve));
+    }
+    
+    // Additional wait for dynamic content
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    replayActions(matchingSite.actions);
   }
 }
 
-async function replayActions(actions) {
-  for (const action of actions) {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const element = document.querySelector(action.selector);
-    if (!element) {
-      console.warn('[ScrapAI] Element non trouvé:', action.selector);
-      continue;
-    }
-    
-    if (action.type === 'click') {
-      element.click();
-      console.log('[ScrapAI] Click:', action.selector);
-    } else if (action.type === 'input') {
-      element.focus();
-      element.value = action.value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('[ScrapAI] Input:', action.selector);
-    } else if (action.type === 'enter') {
-      element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      const form = element.closest('form');
-      if (form) form.submit();
+// Find element using multiple selectors
+function findElement(action) {
+  // Try each selector in order
+  const selectors = action.selectors || [action.selector];
+  
+  for (const selector of selectors) {
+    if (!selector) continue;
+    try {
+      const element = document.querySelector(selector);
+      if (element) {
+        console.log('[ScrapAI] Element trouvé avec:', selector);
+        return element;
+      }
+    } catch (e) {
+      console.warn('[ScrapAI] Sélecteur invalide:', selector);
     }
   }
   
+  // Fallback: try to find by input type for input actions
+  if (action.type === 'input' && action.inputType) {
+    const inputs = document.querySelectorAll(`input[type="${action.inputType}"]`);
+    if (inputs.length === 1) {
+      console.log('[ScrapAI] Element trouvé par type:', action.inputType);
+      return inputs[0];
+    }
+    // For password, return first password field
+    if (action.inputType === 'password' && inputs.length > 0) {
+      console.log('[ScrapAI] Password field trouvé');
+      return inputs[0];
+    }
+    // For email/text, try to find email-like input
+    if ((action.inputType === 'email' || action.inputType === 'text') && inputs.length > 0) {
+      const emailInput = document.querySelector('input[type="email"], input[name*="email"], input[name*="user"], input[name*="login"]');
+      if (emailInput) {
+        console.log('[ScrapAI] Email/user field trouvé');
+        return emailInput;
+      }
+    }
+  }
+  
+  // Fallback: find submit button for click actions
+  if (action.type === 'click' && action.tagName === 'BUTTON') {
+    const submitBtn = document.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
+    if (submitBtn) {
+      console.log('[ScrapAI] Submit button trouvé');
+      return submitBtn;
+    }
+  }
+  
+  return null;
+}
+
+async function replayActions(actions) {
+  console.log('[ScrapAI] === DÉBUT REPLAY ===');
+  
+  for (let i = 0; i < actions.length; i++) {
+    const action = actions[i];
+    console.log(`[ScrapAI] Action ${i + 1}/${actions.length}:`, action.type);
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const element = findElement(action);
+    
+    if (!element) {
+      console.error('[ScrapAI] ❌ Element non trouvé pour action:', action);
+      showNotification(`Element non trouvé (action ${i + 1})`, true);
+      continue;
+    }
+    
+    try {
+      if (action.type === 'click') {
+        // Scroll to element
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Focus and click
+        element.focus();
+        element.click();
+        console.log('[ScrapAI] ✓ Click effectué');
+        
+      } else if (action.type === 'input') {
+        // Focus element
+        element.focus();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Clear and set value
+        element.value = '';
+        element.value = action.value;
+        
+        // Trigger all necessary events
+        element.dispatchEvent(new Event('focus', { bubbles: true }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        
+        console.log('[ScrapAI] ✓ Input rempli:', action.value.slice(0, 3) + '***');
+        
+      } else if (action.type === 'enter') {
+        element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+        element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+        
+        // Try to submit form
+        const form = element.closest('form');
+        if (form) {
+          console.log('[ScrapAI] Submit form trouvé');
+          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
+        console.log('[ScrapAI] ✓ Enter envoyé');
+      }
+    } catch (err) {
+      console.error('[ScrapAI] Erreur action:', err);
+    }
+  }
+  
+  console.log('[ScrapAI] === FIN REPLAY ===');
   showNotification('✓ Actions rejouées !');
 }
