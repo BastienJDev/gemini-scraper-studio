@@ -223,14 +223,24 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px;
+      padding: 8px 10px;
       background: #1e293b;
       border-radius: 6px;
       margin-bottom: 6px;
       font-size: 12px;
     }
+    .site-item .site-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
     .site-item .domain {
       color: #06b6d4;
+      font-weight: 500;
+    }
+    .site-item .meta {
+      color: #64748b;
+      font-size: 10px;
     }
     .site-item .actions {
       display: flex;
@@ -238,9 +248,15 @@
     }
     .site-item button {
       width: auto;
-      padding: 4px 8px;
+      padding: 6px 10px;
       margin: 0;
-      font-size: 11px;
+      font-size: 12px;
+    }
+    .site-item .btn-delete {
+      background: #475569;
+    }
+    .site-item .btn-delete:hover {
+      background: #ef4444;
     }
     .toggle-manual {
       font-size: 11px;
