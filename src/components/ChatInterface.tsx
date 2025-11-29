@@ -311,7 +311,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
     <div className="flex flex-col h-full">
       {/* Header with context info */}
       {messages.length > 0 && (
-        <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between gap-2 flex-wrap">
+        <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between gap-2 flex-wrap rounded-t-xl m-4 mb-0">
           <div className="flex items-center gap-2 flex-wrap">
             {selectedCategories.length > 0 && (
               <div className="flex items-center gap-1">
@@ -339,8 +339,8 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
         <div className="max-w-3xl mx-auto space-y-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-card border border-border/50 flex items-center justify-center mb-4">
-                <Sparkles className="h-8 w-8 text-primary" />
+              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 glow-primary">
+                <Sparkles className="h-8 w-8 text-primary-foreground" />
               </div>
               <h3 className="text-xl font-medium text-foreground mb-2">
                 {hasContext ? "Prêt à rechercher" : "Bienvenue sur ScrapAI"}
@@ -358,9 +358,9 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                     Utilisez le filtre "Catégories" dans la barre du haut
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Sport</Badge>
-                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20">DROIT</Badge>
-                    <Badge variant="outline" className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20">PRESSE</Badge>
+                    <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">Sport</Badge>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">DROIT</Badge>
+                    <Badge variant="outline" className="bg-cyan-100 text-cyan-700 border-cyan-200">PRESSE</Badge>
                     <span className="text-muted-foreground">...</span>
                   </div>
                 </div>
@@ -390,8 +390,8 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                 )}
               >
                 {message.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="h-4 w-4 text-primary" />
+                  <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot className="h-4 w-4 text-primary-foreground" />
                   </div>
                 )}
                 <div
@@ -399,7 +399,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                     "max-w-[80%] rounded-2xl px-4 py-3",
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
-                      : "bg-secondary/50 text-foreground border border-border/30"
+                      : "bg-card text-foreground border border-border shadow-sm"
                   )}
                 >
                 <div className="text-sm">
@@ -417,7 +417,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                   </div>
                   {/* Export buttons for assistant messages with content */}
                   {message.role === "assistant" && message.content && (
-                    <div className="mt-3 pt-3 border-t border-border/30 flex gap-2">
+                    <div className="mt-3 pt-3 border-t border-border flex gap-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -474,7 +474,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       </div>
 
       {/* Input */}
-      <div className="border-t border-border/30 p-4 bg-card/30">
+      <div className="border-t border-border p-4 bg-card">
         <div className="max-w-3xl mx-auto flex gap-3 items-end">
           <Textarea
             placeholder={
@@ -485,7 +485,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="min-h-[48px] max-h-32 resize-none bg-secondary/50 border-border/50 focus:border-primary/50 focus:ring-primary/20"
+            className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
             disabled={isLoading}
           />
           <Button

@@ -75,7 +75,7 @@ export function PlaywrightLogin() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-card shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Play className="h-5 w-5 text-primary" />
@@ -176,12 +176,12 @@ export function PlaywrightLogin() {
         </Button>
 
         {result && (
-          <div className={`p-4 rounded-lg border ${result.success ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+          <div className={`p-4 rounded-lg border ${result.success ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center gap-2 mb-2">
               {result.success ? (
-                <CheckCircle className="h-5 w-5 text-green-500" />
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-500" />
+                <XCircle className="h-5 w-5 text-red-600" />
               )}
               <span className="font-medium">
                 {result.success ? "Connexion réussie" : "Échec de connexion"}
@@ -189,13 +189,13 @@ export function PlaywrightLogin() {
             </div>
             
             {result.error && (
-              <p className="text-sm text-red-400">{result.error}</p>
+              <p className="text-sm text-red-600">{result.error}</p>
             )}
             
             {result.cookies && result.cookies.length > 0 && (
               <div className="mt-3">
                 <p className="text-sm font-medium mb-2">Cookies récupérés ({result.cookies.length}) :</p>
-                <div className="max-h-32 overflow-y-auto text-xs bg-background/50 p-2 rounded">
+                <div className="max-h-32 overflow-y-auto text-xs bg-card p-2 rounded border border-border">
                   {result.cookies.map((cookie, i) => (
                     <div key={i} className="truncate">
                       <span className="text-primary">{cookie.name}</span>: {cookie.value.substring(0, 30)}...

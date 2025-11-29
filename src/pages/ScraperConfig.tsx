@@ -143,8 +143,8 @@ const ScraperConfigPage = () => {
           onCategoryToggle={handleCategoryToggle}
           onClearCategories={handleClearCategories}
         />
-        <main className="flex-1 flex flex-col">
-          <header className="h-14 border-b border-border/30 flex items-center px-4 gap-4">
+        <main className="flex-1 flex flex-col bg-secondary/30">
+          <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-4">
             <SidebarTrigger />
             <h1 className="text-lg font-semibold">Configuration Scraper Python</h1>
           </header>
@@ -152,7 +152,7 @@ const ScraperConfigPage = () => {
           <div className="flex-1 p-6 overflow-auto">
             <div className="max-w-4xl mx-auto space-y-6">
               {/* API Configuration */}
-              <Card>
+              <Card className="bg-card shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Server className="h-5 w-5 text-primary" />
@@ -176,7 +176,7 @@ const ScraperConfigPage = () => {
               </Card>
 
               {/* Credentials */}
-              <Card>
+              <Card className="bg-card shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Key className="h-5 w-5 text-primary" />
@@ -232,7 +232,7 @@ const ScraperConfigPage = () => {
               </div>
 
               {/* Test Scrape */}
-              <Card>
+              <Card className="bg-card shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Play className="h-5 w-5 text-primary" />
@@ -268,9 +268,9 @@ const ScraperConfigPage = () => {
                           {scrapeResult.items?.length || 0} résultats
                         </Badge>
                       </div>
-                      <div className="max-h-96 overflow-auto rounded-lg border border-border/50 bg-secondary/20">
+                      <div className="max-h-96 overflow-auto rounded-lg border border-border bg-secondary/30">
                         {scrapeResult.items?.map((item, index) => (
-                          <div key={index} className="p-3 border-b border-border/30 last:border-b-0">
+                          <div key={index} className="p-3 border-b border-border last:border-b-0">
                             {item.title && (
                               <h4 className="font-medium text-sm text-foreground">{item.title}</h4>
                             )}
@@ -283,7 +283,7 @@ const ScraperConfigPage = () => {
                               {item.url}
                             </a>
                             {item.error ? (
-                              <p className="text-xs text-red-400 mt-1">{item.error}</p>
+                              <p className="text-xs text-destructive mt-1">{item.error}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                 {item.text?.substring(0, 200)}...
@@ -298,23 +298,23 @@ const ScraperConfigPage = () => {
               </Card>
 
               {/* Instructions */}
-              <Card className="bg-secondary/20 border-dashed">
+              <Card className="bg-secondary/30 border-dashed">
                 <CardHeader>
                   <CardTitle className="text-base">Instructions de déploiement</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-3">
                   <p>1. Copiez votre script Python sur le VPS</p>
                   <p>2. Installez les dépendances :</p>
-                  <pre className="bg-background/50 p-2 rounded text-xs overflow-x-auto">
+                  <pre className="bg-card p-2 rounded text-xs overflow-x-auto border border-border">
                     pip install flask flask-cors playwright{"\n"}
                     playwright install chromium
                   </pre>
                   <p>3. Créez l'API Flask (api_scraper.py) et lancez-la :</p>
-                  <pre className="bg-background/50 p-2 rounded text-xs overflow-x-auto">
+                  <pre className="bg-card p-2 rounded text-xs overflow-x-auto border border-border">
                     python api_scraper.py
                   </pre>
                   <p>4. Configurez PM2 pour la persistence :</p>
-                  <pre className="bg-background/50 p-2 rounded text-xs overflow-x-auto">
+                  <pre className="bg-card p-2 rounded text-xs overflow-x-auto border border-border">
                     pm2 start api_scraper.py --interpreter python3{"\n"}
                     pm2 save
                   </pre>
