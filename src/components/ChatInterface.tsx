@@ -131,7 +131,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       return {
         url: site.url,
         title: data.title || site.name,
-        content: data.content?.substring(0, 8000) || "", // More content per site with deep scraping
+        content: data.content || "", // Full content - no truncation
         siteName: site.name,
       };
     } catch (error) {
