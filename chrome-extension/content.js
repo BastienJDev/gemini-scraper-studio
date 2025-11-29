@@ -24,11 +24,12 @@ function setupActionRecorder() {
     <style>
       #scrapai-recorder {
         position: fixed;
-        top: 10px;
-        right: 10px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         background: #1e293b;
         color: white;
-        padding: 12px 16px;
+        padding: 16px 20px;
         border-radius: 12px;
         font-family: -apple-system, sans-serif;
         font-size: 13px;
