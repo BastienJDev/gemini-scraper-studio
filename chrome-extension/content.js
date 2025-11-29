@@ -15,109 +15,141 @@
 function setupRecording() {
   console.log('[ScrapAI] Mode enregistrement activé');
   
-  // Store credentials as user types (before form submission clears them)
-  let capturedUsername = '';
-  let capturedPassword = '';
-  let usernameField = null;
-  let passwordField = null;
-  
-  // Show recording indicator with stop button
-  const indicator = document.createElement('div');
-  indicator.id = 'scrapai-recording';
-  indicator.innerHTML = `
+  // Show floating save form
+  const panel = document.createElement('div');
+  panel.id = 'scrapai-recording';
+  panel.innerHTML = `
     <style>
       #scrapai-recording {
         position: fixed;
         top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #ef4444;
+        right: 10px;
+        background: #1e293b;
         color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
+        padding: 16px;
+        border-radius: 12px;
         font-family: -apple-system, sans-serif;
-        font-size: 14px;
+        font-size: 13px;
         z-index: 999999;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        width: 280px;
+      }
+      #scrapai-recording .header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        gap: 8px;
+        margin-bottom: 12px;
+        color: #ef4444;
+        font-weight: 600;
       }
       #scrapai-recording .dot {
         width: 8px;
         height: 8px;
-        background: white;
+        background: #ef4444;
         border-radius: 50%;
         animation: pulse 1s infinite;
       }
-      #scrapai-recording .stop-btn {
-        background: white;
-        color: #ef4444;
+      #scrapai-recording input {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        background: #0f172a;
+        color: white;
+        font-size: 13px;
+        box-sizing: border-box;
+      }
+      #scrapai-recording input::placeholder {
+        color: #64748b;
+      }
+      #scrapai-recording .buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      #scrapai-recording button {
+        flex: 1;
+        padding: 8px;
         border: none;
-        padding: 4px 12px;
-        border-radius: 12px;
+        border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
         font-size: 12px;
       }
-      #scrapai-recording .stop-btn:hover {
-        background: #fee2e2;
+      #scrapai-recording .save-btn {
+        background: #22c55e;
+        color: white;
+      }
+      #scrapai-recording .save-btn:hover {
+        background: #16a34a;
+      }
+      #scrapai-recording .cancel-btn {
+        background: #475569;
+        color: white;
+      }
+      #scrapai-recording .cancel-btn:hover {
+        background: #64748b;
+      }
+      #scrapai-recording .info {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-bottom: 12px;
       }
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
       }
     </style>
-    <span class="dot"></span>
-    <span>Enregistrement...</span>
-    <button class="stop-btn" id="scrapai-stop-btn">Arrêter</button>
+    <div class="header">
+      <span class="dot"></span>
+      <span>Enregistrement du login</span>
+    </div>
+    <div class="info">Connecte-toi d'abord, puis entre tes identifiants ci-dessous :</div>
+    <input type="text" id="scrapai-username" placeholder="Email ou nom d'utilisateur" />
+    <input type="password" id="scrapai-password" placeholder="Mot de passe" />
+    <div class="buttons">
+      <button class="cancel-btn" id="scrapai-cancel">Annuler</button>
+      <button class="save-btn" id="scrapai-save">Sauvegarder</button>
+    </div>
   `;
-  document.body.appendChild(indicator);
+  document.body.appendChild(panel);
   
-  // Handle stop button click
-  document.getElementById('scrapai-stop-btn').addEventListener('click', () => {
+  // Handle cancel
+  document.getElementById('scrapai-cancel').addEventListener('click', () => {
     chrome.storage.local.set({ isRecording: false }, () => {
-      indicator.remove();
-      showNotification('✓ Enregistrement arrêté');
+      panel.remove();
+      showNotification('Enregistrement annulé');
     });
   });
-
-  // Track input values in real-time
-  document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (target.type === 'password') {
-      capturedPassword = target.value;
-      passwordField = target;
-      console.log('[ScrapAI] Password capturé');
-    } else if (target.type === 'email' || target.type === 'text' || target.name === 'username' || target.name === 'email' || target.name === 'login') {
-      // Only capture if it looks like a username/email field near a password field
-      const form = target.closest('form') || document;
-      if (form.querySelector('input[type="password"]')) {
-        capturedUsername = target.value;
-        usernameField = target;
-        console.log('[ScrapAI] Username capturé');
-      }
-    }
-  }, true);
-
-  // Capture on form submission
-  const saveLogin = () => {
-    if (!capturedPassword || !capturedUsername) {
-      console.log('[ScrapAI] Credentials manquants:', { hasUser: !!capturedUsername, hasPass: !!capturedPassword });
+  
+  // Handle save
+  document.getElementById('scrapai-save').addEventListener('click', () => {
+    const username = document.getElementById('scrapai-username').value.trim();
+    const password = document.getElementById('scrapai-password').value;
+    
+    if (!username || !password) {
+      alert('Entre ton email et mot de passe');
       return;
     }
-
+    
+    // Try to find selectors on the page
+    const passwordField = document.querySelector('input[type="password"]');
+    const form = passwordField ? passwordField.closest('form') : document;
+    const usernameField = form ? form.querySelector('input[type="email"], input[name="email"], input[name="username"], input[type="text"]') : null;
+    const submitBtn = form ? form.querySelector('button[type="submit"], input[type="submit"], button') : null;
+    
     const site = {
       url: window.location.href,
-      username: capturedUsername,
-      password: capturedPassword,
+      username: username,
+      password: password,
       usernameSelector: usernameField ? buildSelector(usernameField) : 'input[type="email"], input[name="email"], input[name="username"]',
       passwordSelector: passwordField ? buildSelector(passwordField) : 'input[type="password"]',
-      submitSelector: 'button[type="submit"], input[type="submit"], button:not([type])'
+      submitSelector: submitBtn ? buildSelector(submitBtn) : 'button[type="submit"], input[type="submit"]'
     };
-
-    console.log('[ScrapAI] Login capturé:', { ...site, password: '***' });
-
+    
+    console.log('[ScrapAI] Login sauvegardé:', { ...site, password: '***' });
+    
     chrome.storage.local.get('sites', ({ sites = [] }) => {
       const domain = new URL(site.url).hostname;
       const existingIndex = sites.findIndex(s => {
@@ -130,22 +162,12 @@ function setupRecording() {
         sites.push(site);
       }
       
-      chrome.storage.local.set({ sites }, () => {
-        showNotification('✓ Login enregistré ! Clique sur Arrêter quand tu as fini.');
+      chrome.storage.local.set({ sites, isRecording: false }, () => {
+        panel.remove();
+        showNotification('✓ Login sauvegardé !');
       });
     });
-  };
-
-  // Track form submissions
-  document.addEventListener('submit', saveLogin, true);
-  
-  // Track click on buttons that might submit
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('button, input[type="submit"], [role="button"]');
-    if (btn) {
-      setTimeout(saveLogin, 100);
-    }
-  }, true);
+  });
 }
 
 
