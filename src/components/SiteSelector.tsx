@@ -1,14 +1,31 @@
-import { useState, useMemo } from "react";
-import { Search, ChevronDown, ExternalLink, Loader2, Globe } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, ChevronDown, ExternalLink, Loader2, Globe, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Site, ScrapedData } from "@/types/site";
 import sitesData from "@/data/sites.json";
@@ -30,10 +47,22 @@ interface SiteSelectorProps {
   setIsLoading: (loading: boolean) => void;
 }
 
+const CATEGORIES_LIST = [
+  "DROIT",
+  "FEDERATION",
+  "Finance",
+  "Generaliste",
+  "PRESSE",
+  "Sport",
+  "Syndicat",
+  "Autre",
+];
+
+const LOCAL_STORAGE_KEY = "scrapai_custom_sites";
+
 // Normalize the raw data to a consistent format
 const normalizeSites = (rawData: RawSite[]): Site[] => {
   return rawData.map((item) => {
-    // Handle the first format (CATEGORIES, NAME, URL)
     if (item.CATEGORIES && item.NAME && item.URL) {
       return {
         CATEGORIES: item.CATEGORIES.trim(),
@@ -41,7 +70,6 @@ const normalizeSites = (rawData: RawSite[]): Site[] => {
         URL: item.URL,
       };
     }
-    // Handle the second format (Column1, Nom de la Source / Média, Lien Officiel (URL))
     if (item.Column1 && item["Nom de la Source / Média"] && item["Lien Officiel (URL)"]) {
       return {
         CATEGORIES: item.Column1.trim(),
@@ -49,7 +77,6 @@ const normalizeSites = (rawData: RawSite[]): Site[] => {
         URL: item["Lien Officiel (URL)"],
       };
     }
-    // Fallback
     return {
       CATEGORIES: "Autre",
       NAME: item.NAME || item["Nom de la Source / Média"] || "Unknown",
@@ -61,8 +88,55 @@ const normalizeSites = (rawData: RawSite[]): Site[] => {
 export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelectorProps) => {
   const [search, setSearch] = useState("");
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set(["Sport"]));
+  const [customSites, setCustomSites] = useState<Site[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newSite, setNewSite] = useState({ name: "", url: "", category: "Sport" });
 
-  const sites = useMemo(() => normalizeSites(sitesData as RawSite[]), []);
+  // Load custom sites from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (saved) {
+      try {
+        setCustomSites(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse custom sites:", e);
+      }
+    }
+  }, []);
+
+  // Save custom sites to localStorage
+  const saveCustomSites = (sites: Site[]) => {
+    setCustomSites(sites);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sites));
+  };
+
+  const handleAddSite = () => {
+    if (!newSite.name.trim() || !newSite.url.trim()) {
+      toast.error("Veuillez remplir le nom et l'URL");
+      return;
+    }
+
+    let url = newSite.url.trim();
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
+    }
+
+    const site: Site = {
+      NAME: newSite.name.trim(),
+      URL: url,
+      CATEGORIES: newSite.category,
+    };
+
+    saveCustomSites([...customSites, site]);
+    setNewSite({ name: "", url: "", category: "Sport" });
+    setDialogOpen(false);
+    toast.success(`"${site.NAME}" ajouté à la liste`);
+  };
+
+  const baseSites = useMemo(() => normalizeSites(sitesData as RawSite[]), []);
+  
+  // Merge base sites with custom sites
+  const sites = useMemo(() => [...baseSites, ...customSites], [baseSites, customSites]);
 
   // Group sites by category
   const sitesByCategory = useMemo(() => {
@@ -114,12 +188,10 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
   };
 
   const handleScrape = async (site: Site) => {
-    // Clean URL if needed
     let url = site.URL.trim();
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
     }
-    // Remove any trailing notes in parentheses
     url = url.split(" ")[0].split("(")[0].trim();
 
     setIsLoading(true);
@@ -166,19 +238,83 @@ export const SiteSelector = ({ onScraped, isLoading, setIsLoading }: SiteSelecto
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search */}
+      {/* Search & Add */}
       <div className="p-4 border-b border-border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher un site..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-background border-border focus:border-primary"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un site..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 bg-background border-border focus:border-primary"
+            />
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="outline" className="flex-shrink-0">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card">
+              <DialogHeader>
+                <DialogTitle>Ajouter un site</DialogTitle>
+                <DialogDescription>
+                  Ajoutez un nouveau site à votre liste personnelle.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="site-name">Nom du site</Label>
+                  <Input
+                    id="site-name"
+                    placeholder="Ex: L'Équipe"
+                    value={newSite.name}
+                    onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="site-url">URL</Label>
+                  <Input
+                    id="site-url"
+                    placeholder="Ex: https://www.lequipe.fr"
+                    value={newSite.url}
+                    onChange={(e) => setNewSite({ ...newSite, url: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="site-category">Catégorie</Label>
+                  <Select
+                    value={newSite.category}
+                    onValueChange={(value) => setNewSite({ ...newSite, category: value })}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Choisir une catégorie" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card">
+                      {CATEGORIES_LIST.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleAddSite}>Ajouter</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           {sites.length} sites • {Object.keys(sitesByCategory).length} catégories
+          {customSites.length > 0 && (
+            <span className="text-primary"> • {customSites.length} personnalisé{customSites.length > 1 ? "s" : ""}</span>
+          )}
         </p>
       </div>
 
