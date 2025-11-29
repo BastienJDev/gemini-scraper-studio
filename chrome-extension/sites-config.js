@@ -136,13 +136,19 @@ const SITES_CONFIG = {
   droitdusport: {
     name: "Droit du Sport",
     icon: "⚽",
-    description: "Base de données Droit du Sport",
-    startUrl: "",
+    description: "Base de données juridique sportive",
+    startUrl: "http://droitdusport.com/",
     credentials: {
-      username: "",
-      password: ""
+      username: "enzo.pollina@hotmail.fr",
+      password: "dds2111"
     },
-    actions: []
+    actions: [
+      { type: "click", selector: "a.nav-link[data-target='#modalLogin']", delay: 1500 },
+      { type: "waitForSelector", selector: "#username", timeout: 5000 },
+      { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
+      { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
+      { type: "click", selector: "button.btn-dds[type='submit']", delay: 2000 }
+    ]
   }
 };
 
