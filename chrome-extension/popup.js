@@ -129,12 +129,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch {
         domain = site.url;
       }
+      const actionCount = site.actions ? site.actions.length : 0;
+      const info = actionCount > 0 ? `${actionCount} actions` : (site.username || '');
       return `
         <div class="site-item">
-          <span class="domain">${domain}</span>
+          <div class="site-info">
+            <span class="domain">${domain}</span>
+            <span class="meta">${info}</span>
+          </div>
           <div class="actions">
-            <button class="btn-secondary" data-action="login" data-index="${index}">▶ Connecter</button>
-            <button class="btn-secondary" data-action="delete" data-index="${index}">×</button>
+            <button class="btn-secondary" data-action="login" data-index="${index}">▶</button>
+            <button class="btn-secondary btn-delete" data-action="delete" data-index="${index}">×</button>
           </div>
         </div>
       `;
@@ -153,20 +158,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           loadSites();
         } else if (action === 'login') {
           const site = sites[index];
-          const tab = await chrome.tabs.create({ url: site.url });
-          
-          chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-            if (tabId === tab.id && info.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-              
-              chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: performLogin,
-                args: [site]
-              });
-            }
-          });
-          
+          // Just open the page - content.js will auto-replay actions
+          chrome.tabs.create({ url: site.url });
           window.close();
         }
       });
@@ -190,35 +183,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     submitSelectorInput.value = '';
   }
 });
-
-// This function runs in the context of the page
-function performLogin(site) {
-  const fillAndSubmit = () => {
-    // Find username field
-    const usernameField = document.querySelector(site.usernameSelector);
-    if (usernameField) {
-      usernameField.value = site.username;
-      usernameField.dispatchEvent(new Event('input', { bubbles: true }));
-      usernameField.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    // Find password field
-    const passwordField = document.querySelector(site.passwordSelector);
-    if (passwordField) {
-      passwordField.value = site.password;
-      passwordField.dispatchEvent(new Event('input', { bubbles: true }));
-      passwordField.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    // Find and click submit button
-    setTimeout(() => {
-      const submitBtn = document.querySelector(site.submitSelector);
-      if (submitBtn) {
-        submitBtn.click();
-      }
-    }, 500);
-  };
-
-  // Wait a bit for any JS frameworks to initialize
-  setTimeout(fillAndSubmit, 1000);
-}
