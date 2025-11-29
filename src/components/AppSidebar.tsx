@@ -64,6 +64,7 @@ export function AppSidebar({
   const collapsed = state === "collapsed";
   const location = useLocation();
   const [autoLoginOpen, setAutoLoginOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const triggerAutoLogin = (siteId: string, siteName: string) => {
     const event = new CustomEvent("SCRAPAI_AUTO_LOGIN", {
@@ -156,43 +157,50 @@ export function AppSidebar({
         {/* Categories Filter */}
         {!collapsed && (
           <SidebarGroup className="mt-4">
-            <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2">
-              <Filter className="h-3 w-3" />
-              Catégories
-              {selectedCategories.length > 0 && (
-                <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] bg-sidebar-primary/20 text-sidebar-primary">
-                  {selectedCategories.length}
-                </Badge>
-              )}
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="px-2 mt-2">
-              <div className="space-y-1">
-                {CATEGORIES.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent rounded-md p-2 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedCategories.includes(category.id)}
-                      onCheckedChange={() => onCategoryToggle(category.id)}
-                    />
-                    <Badge variant="outline" className={cn("text-xs", category.color)}>
-                      {category.label}
+            <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+              <CollapsibleTrigger className="w-full">
+                <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2 cursor-pointer hover:text-sidebar-foreground transition-colors">
+                  <Filter className="h-3 w-3" />
+                  Catégories
+                  {selectedCategories.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto mr-2 h-5 px-1.5 text-[10px] bg-sidebar-primary/20 text-sidebar-primary">
+                      {selectedCategories.length}
                     </Badge>
-                  </label>
-                ))}
-              </div>
-              {selectedCategories.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs mt-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                  onClick={onClearCategories}
-                >
-                  Tout désélectionner
-                </Button>
-              )}
-            </SidebarGroupContent>
+                  )}
+                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", categoriesOpen && "rotate-180")} />
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="px-2 mt-2">
+                  <div className="space-y-1">
+                    {CATEGORIES.map((category) => (
+                      <label
+                        key={category.id}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent rounded-md p-2 transition-colors"
+                      >
+                        <Checkbox
+                          checked={selectedCategories.includes(category.id)}
+                          onCheckedChange={() => onCategoryToggle(category.id)}
+                        />
+                        <Badge variant="outline" className={cn("text-xs", category.color)}>
+                          {category.label}
+                        </Badge>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedCategories.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs mt-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      onClick={onClearCategories}
+                    >
+                      Tout désélectionner
+                    </Button>
+                  )}
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
           </SidebarGroup>
         )}
       </SidebarContent>
