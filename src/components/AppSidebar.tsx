@@ -32,11 +32,11 @@ const AUTO_LOGIN_SITES = [
 ];
 
 const CATEGORIES = [
-  { id: "droit", label: "DROIT", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-  { id: "federation", label: "FEDERATION", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
+  { id: "droit", label: "Droit", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
+  { id: "federation", label: "Fédération", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
   { id: "finance", label: "Finance", color: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-  { id: "generaliste", label: "Generaliste", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
-  { id: "presse", label: "PRESSE", color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" },
+  { id: "generaliste", label: "Généraliste", color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
+  { id: "presse", label: "Presse", color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" },
   { id: "sport", label: "Sport", color: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
   { id: "syndicat", label: "Syndicat", color: "bg-rose-500/20 text-rose-300 border-rose-500/30" },
 ];

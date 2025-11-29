@@ -359,8 +359,8 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
                     <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">Sport</Badge>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">DROIT</Badge>
-                    <Badge variant="outline" className="bg-cyan-100 text-cyan-700 border-cyan-200">PRESSE</Badge>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">Droit</Badge>
+                    <Badge variant="outline" className="bg-cyan-100 text-cyan-700 border-cyan-200">Presse</Badge>
                     <span className="text-muted-foreground">...</span>
                   </div>
                 </div>
