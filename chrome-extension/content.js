@@ -336,118 +336,223 @@ async function autoFillIfSaved() {
   }
 }
 
-// Find element using multiple selectors
-function findElement(action) {
-  // Try each selector in order
-  const selectors = action.selectors || [action.selector];
-  
-  for (const selector of selectors) {
-    if (!selector) continue;
-    try {
-      const element = document.querySelector(selector);
-      if (element) {
-        console.log('[ScrapAI] Element trouvé avec:', selector);
-        return element;
+// Wait for element to appear in DOM (handles dynamic content)
+function waitForElement(action, timeout = 10000) {
+  return new Promise((resolve) => {
+    const selectors = action.selectors || [action.selector];
+    
+    // Try to find immediately
+    for (const selector of selectors) {
+      if (!selector) continue;
+      try {
+        const el = document.querySelector(selector);
+        if (el && el.offsetParent !== null) {
+          console.log('[ScrapAI] Element trouvé immédiatement:', selector);
+          return resolve(el);
+        }
+      } catch (e) {}
+    }
+    
+    // Fallback search
+    const fallbackEl = findElementFallback(action);
+    if (fallbackEl) {
+      return resolve(fallbackEl);
+    }
+    
+    // Watch for element to appear
+    const observer = new MutationObserver(() => {
+      for (const selector of selectors) {
+        if (!selector) continue;
+        try {
+          const el = document.querySelector(selector);
+          if (el && el.offsetParent !== null) {
+            observer.disconnect();
+            console.log('[ScrapAI] Element apparu:', selector);
+            return resolve(el);
+          }
+        } catch (e) {}
       }
-    } catch (e) {
-      console.warn('[ScrapAI] Sélecteur invalide:', selector);
+      
+      const fallback = findElementFallback(action);
+      if (fallback) {
+        observer.disconnect();
+        return resolve(fallback);
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    
+    // Timeout
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeout);
+  });
+}
+
+// Fallback element finder
+function findElementFallback(action) {
+  if (action.type === 'input') {
+    // Try common input patterns
+    const queries = [
+      `input[type="${action.inputType}"]`,
+      'input[type="email"]',
+      'input[name*="email"]',
+      'input[name*="user"]',
+      'input[name*="login"]',
+      'input[autocomplete="email"]',
+      'input[autocomplete="username"]'
+    ];
+    
+    if (action.inputType === 'password') {
+      const pwd = document.querySelector('input[type="password"]');
+      if (pwd) return pwd;
+    } else {
+      for (const q of queries) {
+        const el = document.querySelector(q);
+        if (el && el.type !== 'password') return el;
+      }
     }
   }
   
-  // Fallback: try to find by input type for input actions
-  if (action.type === 'input' && action.inputType) {
-    const inputs = document.querySelectorAll(`input[type="${action.inputType}"]`);
-    if (inputs.length === 1) {
-      console.log('[ScrapAI] Element trouvé par type:', action.inputType);
-      return inputs[0];
-    }
-    // For password, return first password field
-    if (action.inputType === 'password' && inputs.length > 0) {
-      console.log('[ScrapAI] Password field trouvé');
-      return inputs[0];
-    }
-    // For email/text, try to find email-like input
-    if ((action.inputType === 'email' || action.inputType === 'text') && inputs.length > 0) {
-      const emailInput = document.querySelector('input[type="email"], input[name*="email"], input[name*="user"], input[name*="login"]');
-      if (emailInput) {
-        console.log('[ScrapAI] Email/user field trouvé');
-        return emailInput;
-      }
-    }
-  }
-  
-  // Fallback: find submit button for click actions
   if (action.type === 'click' && action.tagName === 'BUTTON') {
-    const submitBtn = document.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
-    if (submitBtn) {
-      console.log('[ScrapAI] Submit button trouvé');
-      return submitBtn;
+    // Find submit button
+    const btns = [
+      'button[type="submit"]',
+      'input[type="submit"]',
+      'button:not([type="button"])',
+      '[role="button"]'
+    ];
+    for (const q of btns) {
+      const el = document.querySelector(q);
+      if (el) return el;
     }
   }
   
   return null;
 }
 
+// Set input value - works with React/Vue/Angular
+function setInputValue(element, value) {
+  // Method 1: Native setter (bypasses React)
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype, 'value'
+  )?.set;
+  
+  const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLTextAreaElement.prototype, 'value'
+  )?.set;
+  
+  const setter = element.tagName === 'TEXTAREA' ? nativeTextAreaValueSetter : nativeInputValueSetter;
+  
+  if (setter) {
+    setter.call(element, value);
+  } else {
+    element.value = value;
+  }
+  
+  // Trigger all possible events
+  element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new InputEvent('input', { bubbles: true, data: value, inputType: 'insertText' }));
+  
+  // For React 16+
+  const tracker = element._valueTracker;
+  if (tracker) {
+    tracker.setValue('');
+  }
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// Simulate realistic click
+function simulateClick(element) {
+  element.focus();
+  
+  const rect = element.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  
+  // Mouse events sequence
+  ['mousedown', 'mouseup', 'click'].forEach(type => {
+    element.dispatchEvent(new MouseEvent(type, {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+      clientX: x,
+      clientY: y
+    }));
+  });
+  
+  // Also try native click
+  element.click();
+}
+
 async function replayActions(actions) {
   console.log('[ScrapAI] === DÉBUT REPLAY ===');
+  console.log('[ScrapAI] Actions à rejouer:', actions.length);
   
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
-    console.log(`[ScrapAI] Action ${i + 1}/${actions.length}:`, action.type);
+    console.log(`[ScrapAI] Action ${i + 1}/${actions.length}:`, action.type, action.selectors?.[0]);
     
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait between actions
+    await new Promise(r => setTimeout(r, 800));
     
-    const element = findElement(action);
+    const element = await waitForElement(action);
     
     if (!element) {
-      console.error('[ScrapAI] ❌ Element non trouvé pour action:', action);
-      showNotification(`Element non trouvé (action ${i + 1})`, true);
+      console.error('[ScrapAI] ❌ Element non trouvé:', action);
+      showNotification(`Element non trouvé (${i + 1}/${actions.length})`, true);
       continue;
     }
     
+    console.log('[ScrapAI] Element trouvé:', element.tagName, element.type || '');
+    
     try {
+      // Scroll into view
+      element.scrollIntoView({ behavior: 'instant', block: 'center' });
+      await new Promise(r => setTimeout(r, 200));
+      
       if (action.type === 'click') {
-        // Scroll to element
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Focus and click
-        element.focus();
-        element.click();
-        console.log('[ScrapAI] ✓ Click effectué');
+        simulateClick(element);
+        console.log('[ScrapAI] ✓ Click');
         
       } else if (action.type === 'input') {
-        // Focus element
         element.focus();
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(r => setTimeout(r, 100));
         
-        // Clear and set value
-        element.value = '';
-        element.value = action.value;
+        // Clear first
+        setInputValue(element, '');
+        await new Promise(r => setTimeout(r, 50));
         
-        // Trigger all necessary events
-        element.dispatchEvent(new Event('focus', { bubbles: true }));
-        element.dispatchEvent(new Event('input', { bubbles: true }));
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-        element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-        
-        console.log('[ScrapAI] ✓ Input rempli:', action.value.slice(0, 3) + '***');
+        // Set value
+        setInputValue(element, action.value);
+        console.log('[ScrapAI] ✓ Input:', action.value.slice(0, 3) + '***');
         
       } else if (action.type === 'enter') {
-        element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-        element.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-        element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-        
-        // Try to submit form
         const form = element.closest('form');
+        
+        // Dispatch Enter key
+        ['keydown', 'keypress', 'keyup'].forEach(type => {
+          element.dispatchEvent(new KeyboardEvent(type, {
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13,
+            which: 13,
+            bubbles: true,
+            cancelable: true
+          }));
+        });
+        
+        // Submit form if exists
         if (form) {
-          console.log('[ScrapAI] Submit form trouvé');
-          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          form.requestSubmit?.() || form.submit();
         }
-        console.log('[ScrapAI] ✓ Enter envoyé');
+        
+        console.log('[ScrapAI] ✓ Enter');
       }
     } catch (err) {
-      console.error('[ScrapAI] Erreur action:', err);
+      console.error('[ScrapAI] Erreur:', err);
     }
   }
   
