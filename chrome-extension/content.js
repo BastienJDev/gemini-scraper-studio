@@ -26,35 +26,54 @@
 async function executePredefinedLogin(loginTask) {
   const { config, siteId } = loginTask;
   const { actions, credentials } = config;
+  const currentStep = loginTask.currentStep || 0;
   
-  console.log(`[ScrapAI] Starting login for ${siteId}`);
-  showNotification(`Connexion à ${config.name} en cours...`, false);
-  
-  // Clear the pending task
-  await chrome.storage.local.remove('pendingLogin');
+  console.log(`[ScrapAI] Starting login for ${siteId} at step ${currentStep}/${actions.length}`);
+  showNotification(`Connexion à ${config.name} en cours... (${currentStep}/${actions.length})`, false);
   
   // Wait for page to be fully loaded
   await waitForPageLoad();
+  await sleep(1000); // Extra delay for dynamic content
   
-  // Execute each action
-  for (let i = 0; i < actions.length; i++) {
+  // Execute each action starting from current step
+  for (let i = currentStep; i < actions.length; i++) {
     const action = actions[i];
-    console.log(`[ScrapAI] Executing action ${i + 1}/${actions.length}:`, action.type);
+    console.log(`[ScrapAI] Executing action ${i + 1}/${actions.length}:`, action.type, action.selector);
     
     try {
+      // Update current step before executing (in case of redirect)
+      loginTask.currentStep = i;
+      await chrome.storage.local.set({ pendingLogin: loginTask });
+      
       await executeAction(action, credentials);
       
       // Wait for specified delay or default
       const delay = action.delay || 500;
       await sleep(delay);
       
+      // If this action causes navigation, stop and let the new page continue
+      if (action.type === 'click') {
+        // Check if page is navigating
+        await sleep(500);
+        // Update step to next one for when page reloads
+        loginTask.currentStep = i + 1;
+        await chrome.storage.local.set({ pendingLogin: loginTask });
+      }
+      
     } catch (error) {
       console.error(`[ScrapAI] Action failed:`, error);
-      showNotification(`Erreur: ${error.message}`, true);
-      return;
+      // Don't show error for element not found - might be on wrong page
+      if (!error.message.includes('not found')) {
+        showNotification(`Erreur: ${error.message}`, true);
+      }
+      // Continue to next action - element might not exist on this page
+      continue;
     }
   }
   
+  // All actions completed - clear the task
+  console.log('[ScrapAI] All actions completed, clearing task');
+  await chrome.storage.local.remove('pendingLogin');
   showNotification(`Connexion à ${config.name} réussie !`, false);
 }
 
