@@ -1,4 +1,4 @@
-import { Zap, List, MessageSquare, Globe, Filter, Settings, KeyRound, ExternalLink, ChevronDown, Briefcase, Newspaper, FileText } from "lucide-react";
+import { Zap, List, MessageSquare, Filter, KeyRound, ExternalLink, ChevronDown, Briefcase, Newspaper, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -205,17 +205,6 @@ export function AppSidebar({
         )}
       </SidebarContent>
 
-      {/* Footer */}
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Globe className="h-3.5 w-3.5 text-sidebar-primary" />
-            <span className="px-2 py-1 rounded-md bg-sidebar-primary/20 text-sidebar-primary font-medium text-[10px]">
-              Gemini 2.5 Flash
-            </span>
-          </div>
-        )}
-      </SidebarFooter>
     </Sidebar>
   );
 }
