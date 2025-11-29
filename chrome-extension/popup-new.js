@@ -1,22 +1,17 @@
 // Popup controller for ScrapAI Auto-Login
-let currentConfigSite = null;
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
-  await renderSitesGrid();
+  renderSitesGrid();
   await loadSavedSites();
-  setupEventListeners();
 });
 
 // Render the predefined sites grid
-async function renderSitesGrid() {
+function renderSitesGrid() {
   const grid = document.getElementById('sitesGrid');
-  const storedCredentials = await getStoredCredentials();
-  
   grid.innerHTML = '';
   
   for (const [siteId, config] of Object.entries(SITES_CONFIG)) {
-    const hasCredentials = storedCredentials[siteId]?.username && storedCredentials[siteId]?.password;
     const isDisabled = !config.startUrl;
     
     const card = document.createElement('div');
@@ -27,104 +22,21 @@ async function renderSitesGrid() {
       <div class="site-icon">${config.icon}</div>
       <div class="site-name">${config.name}</div>
       <div class="site-desc">${config.description}</div>
-      <div class="site-status ${hasCredentials ? 'configured' : 'not-configured'}">
-        ${isDisabled ? '🚧 Bientôt' : (hasCredentials ? '✓ Configuré' : '⚙️ À configurer')}
+      <div class="site-status ${isDisabled ? 'coming-soon' : 'ready'}">
+        ${isDisabled ? '🚧 Bientôt' : '▶ Cliquer pour lancer'}
       </div>
     `;
     
     if (!isDisabled) {
-      card.addEventListener('click', () => openSiteConfig(siteId));
+      card.addEventListener('click', () => startLogin(siteId));
     }
     
     grid.appendChild(card);
   }
 }
 
-// Open site configuration panel
-async function openSiteConfig(siteId) {
-  currentConfigSite = siteId;
-  const config = SITES_CONFIG[siteId];
-  const storedCredentials = await getStoredCredentials();
-  const creds = storedCredentials[siteId] || {};
-  
-  // Use stored credentials, or fallback to hardcoded defaults from config
-  const defaultCreds = config.credentials || {};
-  
-  document.getElementById('configSiteIcon').textContent = config.icon;
-  document.getElementById('configSiteName').textContent = config.name;
-  document.getElementById('siteUsername').value = creds.username || defaultCreds.username || '';
-  document.getElementById('sitePassword').value = creds.password || defaultCreds.password || '';
-  
-  document.getElementById('credentialsSection').classList.add('active');
-  hideStatus();
-}
-
-// Setup event listeners
-function setupEventListeners() {
-  // Close credentials panel
-  document.getElementById('closeCredentials').addEventListener('click', () => {
-    document.getElementById('credentialsSection').classList.remove('active');
-    currentConfigSite = null;
-  });
-  
-  // Save credentials
-  document.getElementById('saveCredentials').addEventListener('click', async () => {
-    if (!currentConfigSite) return;
-    
-    const username = document.getElementById('siteUsername').value.trim();
-    const password = document.getElementById('sitePassword').value;
-    
-    if (!username || !password) {
-      showStatus('Veuillez remplir tous les champs', 'error');
-      return;
-    }
-    
-    await saveCredentials(currentConfigSite, username, password);
-    showStatus('Identifiants sauvegardés !', 'success');
-    await renderSitesGrid();
-  });
-  
-  // Connect now
-  document.getElementById('connectNow').addEventListener('click', async () => {
-    if (!currentConfigSite) return;
-    
-    const username = document.getElementById('siteUsername').value.trim();
-    const password = document.getElementById('sitePassword').value;
-    
-    if (!username || !password) {
-      showStatus('Veuillez remplir tous les champs', 'error');
-      return;
-    }
-    
-    // Save credentials first
-    await saveCredentials(currentConfigSite, username, password);
-    
-    // Start the login process
-    await startLogin(currentConfigSite, username, password);
-  });
-}
-
-// Get stored credentials from chrome.storage
-async function getStoredCredentials() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['siteCredentials'], (result) => {
-      resolve(result.siteCredentials || {});
-    });
-  });
-}
-
-// Save credentials for a site
-async function saveCredentials(siteId, username, password) {
-  const credentials = await getStoredCredentials();
-  credentials[siteId] = { username, password };
-  
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ siteCredentials: credentials }, resolve);
-  });
-}
-
-// Start the login process
-async function startLogin(siteId, username, password) {
+// Start the login process directly with hardcoded credentials
+async function startLogin(siteId) {
   const config = SITES_CONFIG[siteId];
   
   if (!config || !config.startUrl) {
@@ -132,14 +44,17 @@ async function startLogin(siteId, username, password) {
     return;
   }
   
-  showStatus('Préparation...', 'info');
+  showStatus('Préparation de la connexion...', 'info');
+  
+  // Use credentials from config
+  const credentials = config.credentials || {};
   
   // Store the login task
   const loginTask = {
     siteId,
     config: {
       ...config,
-      credentials: { username, password }
+      credentials
     },
     startedAt: Date.now()
   };
@@ -155,12 +70,11 @@ async function startLogin(siteId, username, password) {
   // Small delay to ensure storage is ready
   await new Promise(r => setTimeout(r, 100));
   
-  showStatus('Ouverture du site...', 'info');
+  showStatus('Ouverture de ' + config.name + '...', 'info');
   
   // Open the site in a new tab
   chrome.tabs.create({ url: config.startUrl }, (tab) => {
     console.log('[ScrapAI Popup] Tab created:', tab.id);
-    showStatus('Connexion en cours...', 'info');
     window.close();
   });
 }
@@ -251,11 +165,8 @@ function getDomain(url) {
 
 function showStatus(message, type) {
   const status = document.getElementById('status');
-  status.textContent = message;
-  status.className = `status ${type}`;
-}
-
-function hideStatus() {
-  const status = document.getElementById('status');
-  status.className = 'status';
+  if (status) {
+    status.textContent = message;
+    status.className = `status ${type}`;
+  }
 }
