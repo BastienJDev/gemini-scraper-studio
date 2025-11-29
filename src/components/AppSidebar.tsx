@@ -1,4 +1,4 @@
-import { Zap, List, MessageSquare, Globe, Filter, Play } from "lucide-react";
+import { Zap, List, MessageSquare, Globe, Filter, Play, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ const navItems = [
   { title: "Chat", url: "/", icon: MessageSquare },
   { title: "Ma Liste", url: "/sites", icon: List },
   { title: "Auto-Login", url: "/playwright", icon: Play },
+  { title: "Scraper Python", url: "/scraper-config", icon: Settings },
 ];
 
 interface AppSidebarProps {
