@@ -265,6 +265,159 @@ def scrape():
         return jsonify({"error": str(e)}), 500
 
 
+def scrape_dalloz(
+    username: str,
+    password: str,
+    search_keyword: str = "",
+    headless: bool = True,
+) -> Dict:
+    """
+    Utilise Playwright pour se connecter à Dalloz via le portail de l'université de Bourgogne.
+    """
+    results: List[Dict] = []
+
+    with sync_playwright() as p:
+        headless_env = os.environ.get("PLAYWRIGHT_HEADLESS", "").lower()
+        effective_headless = headless
+        if headless_env in ("false", "0", "no"):
+            effective_headless = False
+        elif headless_env in ("true", "1", "yes"):
+            effective_headless = True
+
+        browser = p.chromium.launch(headless=effective_headless)
+        context = browser.new_context()
+        page = context.new_page()
+
+        try:
+            # Accès au catalogue de la BU
+            page.goto("https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr", wait_until="networkidle")
+            _human_sleep()
+
+            # Clic sur S'inscrire (bouton de connexion)
+            page.get_by_role("button", name="S'inscrire").click()
+            _human_sleep()
+
+            # Connexion universitaire
+            page.locator("#username").fill(username)
+            _human_sleep(200, 400)
+            page.locator("#password").fill(password)
+            _human_sleep(200, 400)
+            page.get_by_role("button", name="CONNEXION").click()
+            page.wait_for_load_state("networkidle")
+            _human_sleep()
+
+            # Recherche de Dalloz dans le catalogue
+            page.get_by_role("combobox", name="Rechercher").click()
+            _human_sleep()
+            page.get_by_role("combobox", name="Rechercher").fill("dalloz")
+            _human_sleep()
+            page.get_by_role("option", name="Dalloz", exact=True).click()
+            _human_sleep()
+            page.get_by_role("link", name="Dalloz", exact=True).click()
+            page.wait_for_load_state("networkidle")
+            _human_sleep()
+
+            # Ouvre Dalloz dans un popup
+            with page.expect_popup() as page1_info:
+                page.get_by_role("link", name="Dalloz - Base de données -").click()
+            dalloz_page = page1_info.value
+            dalloz_page.wait_for_load_state("networkidle")
+            _human_sleep()
+
+            # Si un mot-clé est fourni, effectuer une recherche sur Dalloz
+            if search_keyword:
+                try:
+                    # Cherche le champ de recherche sur Dalloz
+                    search_selectors = [
+                        "input[type='search']",
+                        "input[placeholder*='recherche' i]",
+                        "input[name*='search' i]",
+                        "#search",
+                        ".search-input",
+                    ]
+                    for sel in search_selectors:
+                        try:
+                            loc = dalloz_page.locator(sel)
+                            if loc.count() > 0 and loc.first.is_visible():
+                                loc.first.click()
+                                _human_sleep()
+                                loc.first.type(search_keyword, delay=random.randint(60, 140))
+                                loc.first.press("Enter")
+                                dalloz_page.wait_for_load_state("networkidle")
+                                _human_sleep()
+                                break
+                        except Exception:
+                            continue
+                except Exception as e:
+                    print(f"Erreur recherche Dalloz: {e}")
+
+            # Extraction du contenu
+            try:
+                text = dalloz_page.text_content("body") or ""
+                results.append({
+                    "url": dalloz_page.url,
+                    "title": "Dalloz - Résultats",
+                    "text": text[:50000]  # Limite à 50k caractères
+                })
+            except Exception as e:
+                results.append({
+                    "url": "https://www.dalloz.fr",
+                    "error": str(e),
+                    "text": ""
+                })
+
+            # Extraction des liens de résultats si présents
+            try:
+                result_links = dalloz_page.locator("a[href*='/documentation/']").evaluate_all(
+                    "els => els.slice(0, 10).map(e => ({href: e.href, text: e.textContent}))"
+                )
+                for link_info in result_links:
+                    if isinstance(link_info, dict):
+                        results.append({
+                            "url": link_info.get("href", ""),
+                            "title": (link_info.get("text", "") or "").strip()[:200],
+                            "text": ""
+                        })
+            except Exception:
+                pass
+
+        except Exception as e:
+            results.append({
+                "url": "https://www.dalloz.fr",
+                "error": f"Erreur de connexion: {str(e)}",
+                "text": ""
+            })
+
+        context.close()
+        browser.close()
+
+    return {"items": results}
+
+
+@app.route('/scrape-dalloz', methods=['POST'])
+def scrape_dalloz_endpoint():
+    """Endpoint pour scraper Dalloz via le portail universitaire."""
+    data = request.json
+    
+    username = data.get('username', '')
+    password = data.get('password', '')
+    keyword = data.get('keyword', '')
+    
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+    
+    try:
+        result = scrape_dalloz(
+            username=username,
+            password=password,
+            search_keyword=keyword,
+            headless=True
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/health', methods=['GET'])
 def health():
     """Endpoint de santé pour vérifier que l'API fonctionne."""
