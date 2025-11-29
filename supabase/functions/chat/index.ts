@@ -32,6 +32,13 @@ serve(async (req) => {
     console.log('Chat request received');
     console.log('Categories:', categories);
     console.log('Scraped sites count:', scrapedSites?.length || 0);
+    
+    // Log content sizes for debugging
+    if (scrapedSites) {
+      scrapedSites.forEach((site: ScrapedSite) => {
+        console.log(`Site ${site.siteName}: ${site.content?.length || 0} chars`);
+      });
+    }
 
     // Build optimized system prompt
     let systemPrompt = buildSystemPrompt(scrapedSites, categories);
@@ -51,8 +58,8 @@ serve(async (req) => {
           ...messages,
         ],
         stream: true,
-        temperature: 0.3, // Lower = more focused and factual
-        max_tokens: 4096, // Allow comprehensive responses
+        temperature: 0.4,
+        max_tokens: 8192, // Réponses longues et détaillées
       }),
     });
 
@@ -94,115 +101,75 @@ serve(async (req) => {
 });
 
 function buildSystemPrompt(scrapedSites: ScrapedSite[] | undefined, categories: string[] | undefined): string {
-  const basePrompt = `# RÔLE ET IDENTITÉ
-Tu es un assistant de recherche expert, spécialisé dans l'analyse et la synthèse d'informations provenant de sources web. Tu travailles exclusivement avec les contenus qui te sont fournis.
+  const basePrompt = `# RÔLE
+Tu es un assistant de recherche EXHAUSTIF. Tu dois analyser EN PROFONDEUR tout le contenu fourni et donner des réponses COMPLÈTES et DÉTAILLÉES.
 
-# COMPÉTENCES CLÉS
-- Analyse approfondie de contenus web
-- Synthèse claire et structurée
-- Citation précise des sources
-- Identification des informations pertinentes
-- Réponses en français de qualité professionnelle`;
+# OBJECTIF PRINCIPAL
+Extraire et présenter TOUTES les informations pertinentes des sources, pas seulement un résumé superficiel.`;
 
   if (!scrapedSites || scrapedSites.length === 0) {
     if (categories && categories.length > 0) {
       return `${basePrompt}
 
-# SITUATION ACTUELLE
-⚠️ Aucun contenu de site n'a pu être analysé pour les catégories: ${categories.join(', ')}.
-
-# COMPORTEMENT ATTENDU
-- Informe l'utilisateur que les sites n'ont pas pu être scrapés
-- Propose de reformuler la recherche ou de sélectionner d'autres catégories
-- Ne fournis PAS d'informations inventées`;
+# SITUATION
+⚠️ Aucun contenu n'a pu être récupéré pour: ${categories.join(', ')}.
+Informe l'utilisateur et propose de sélectionner d'autres catégories.`;
     }
     
     return `${basePrompt}
 
-# SITUATION ACTUELLE
-Aucune catégorie n'est sélectionnée. Guide l'utilisateur pour qu'il sélectionne des catégories dans le menu de gauche afin de cibler sa recherche.`;
+# SITUATION
+Aucune catégorie sélectionnée. Guide l'utilisateur vers le menu de gauche.`;
   }
 
-  // Build context from scraped sites with smart truncation
+  // Build FULL context from scraped sites - NO TRUNCATION
   const siteContexts = scrapedSites.map((site, index) => {
-    // Smart content extraction - keep most relevant parts
-    const content = extractRelevantContent(site.content, 6000);
     return `
-## SOURCE ${index + 1}: ${site.siteName || site.title}
-- **URL**: ${site.url}
-- **Contenu analysé**:
-${content}
----`;
+═══════════════════════════════════════════════════════════════
+SOURCE ${index + 1}/${scrapedSites.length}: ${site.siteName || site.title}
+URL: ${site.url}
+═══════════════════════════════════════════════════════════════
+${site.content || "Contenu non disponible"}
+`;
   }).join('\n');
 
   return `${basePrompt}
 
-# BASE DE CONNAISSANCES (${scrapedSites.length} sources analysées)
-Les informations ci-dessous constituent ta SEULE source de vérité. Tu ne dois utiliser AUCUNE autre connaissance.
+# CONTENU ANALYSÉ (${scrapedSites.length} sources - TOUT LIRE ATTENTIVEMENT)
 
 ${siteContexts}
 
-# RÈGLES ABSOLUES (À RESPECTER IMPÉRATIVEMENT)
+═══════════════════════════════════════════════════════════════
+FIN DES SOURCES
+═══════════════════════════════════════════════════════════════
 
-## 1. Fidélité aux sources
-- Utilise UNIQUEMENT les informations des sources ci-dessus
-- Ne complète JAMAIS avec des connaissances externes
-- Si une information n'est pas dans les sources, dis explicitement: "Cette information n'apparaît pas dans les sources analysées"
+# INSTRUCTIONS CRITIQUES
 
-## 2. Attribution des informations
-- Chaque fait mentionné DOIT être attribué à sa source
-- Utilise des formulations comme: "Selon [Nom du site]..." ou "D'après le contenu de [URL]..."
-- Ne fais JAMAIS de généralisation sans source
+## EXHAUSTIVITÉ (TRÈS IMPORTANT)
+- Tu DOIS parcourir CHAQUE source en détail
+- Tu DOIS mentionner TOUTES les informations pertinentes trouvées
+- NE PAS faire de résumé superficiel - être COMPLET
+- Si une source contient plusieurs informations intéressantes, les lister TOUTES
+- Réponse LONGUE et DÉTAILLÉE attendue
 
-## 3. Qualité de la réponse
-- Structure ta réponse avec des titres et sous-titres si pertinent
-- Sois précis et factuel
-- Évite les formulations vagues
-- Utilise des listes à puces pour les énumérations
+## STRUCTURE DE RÉPONSE
+Pour chaque source pertinente:
+1. Nommer la source
+2. Lister TOUTES les informations trouvées
+3. Citer des passages importants si pertinent
 
-## 4. Format de citation OBLIGATOIRE
-À la FIN de CHAQUE réponse, inclus une section sources:
+## FORMAT OBLIGATOIRE
+Termine TOUJOURS par:
 
-📚 **Sources consultées:**
+📚 **Sources utilisées:**
 ${scrapedSites.map(site => `- [${site.siteName || site.title}](${site.url})`).join('\n')}
 
-# EXEMPLE DE BONNE RÉPONSE
-"D'après le contenu de **[Nom du cabinet]**, les principales actualités concernent [X]. Le site indique que [citation ou paraphrase]. 
+## INTERDICTIONS
+- Ne PAS inventer d'informations
+- Ne PAS utiliser de connaissances externes
+- Ne PAS faire de réponses courtes si du contenu pertinent existe
 
-Sur **[Autre source]**, on trouve également des informations sur [Y], notamment [détails].
-
-📚 **Sources consultées:**
-- [Source 1](url1) - Information trouvée: X
-- [Source 2](url2) - Information trouvée: Y"
-
-# MAINTENANT
-Analyse la question de l'utilisateur et réponds en utilisant EXCLUSIVEMENT les sources fournies ci-dessus.`;
-}
-
-function extractRelevantContent(content: string | undefined, maxLength: number): string {
-  if (!content) return "Contenu non disponible";
-  
-  // Remove excessive whitespace and normalize
-  let cleaned = content
-    .replace(/\s+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  
-  // If content is short enough, return as is
-  if (cleaned.length <= maxLength) return cleaned;
-  
-  // Smart truncation: try to cut at sentence boundaries
-  const truncated = cleaned.substring(0, maxLength);
-  const lastSentenceEnd = Math.max(
-    truncated.lastIndexOf('. '),
-    truncated.lastIndexOf('.\n'),
-    truncated.lastIndexOf('! '),
-    truncated.lastIndexOf('? ')
-  );
-  
-  if (lastSentenceEnd > maxLength * 0.7) {
-    return truncated.substring(0, lastSentenceEnd + 1) + '\n[...]';
-  }
-  
-  return truncated + '...';
+# RAPPEL
+Tu as accès à ${scrapedSites.length} sources avec potentiellement des milliers de caractères de contenu.
+ANALYSE TOUT et donne une réponse EXHAUSTIVE.`;
 }
