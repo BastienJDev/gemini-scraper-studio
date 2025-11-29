@@ -14,7 +14,12 @@ const SITES_CONFIG = {
       { type: "waitForSelector", selector: "#username", timeout: 15000 },
       { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
       { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
-      { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 3000 }
+      { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 4000 },
+      { type: "waitForSelector", selector: "#searchBarJournal", timeout: 15000 },
+      { type: "fill", selector: "#searchBarJournal", value: "Dalloz", delay: 500 },
+      { type: "click", selector: "button.submit-button.button-confirm, button[aria-label='Soumettre la recherche']", delay: 2000 },
+      { type: "click", selector: "mark:has-text('Dalloz'), span:has-text('Dalloz')", delay: 2000 },
+      { type: "click", selector: "a.item-title:has-text('Dalloz - Base de données')", delay: 2000 }
     ]
   },
   droitdusport: {
