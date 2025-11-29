@@ -1,16 +1,23 @@
 // Content script - Handles action recording and automated login replay
 
 (async function() {
+  console.log('[ScrapAI Content] Script loaded on:', window.location.href);
+  
   // Check for pending login task (predefined sites like Dalloz)
   const storage = await chrome.storage.local.get(['pendingLogin', 'pendingReplay', 'isRecording']);
+  console.log('[ScrapAI Content] Storage state:', storage);
   
   if (storage.pendingLogin) {
+    console.log('[ScrapAI Content] Found pending login, executing...');
     await executePredefinedLogin(storage.pendingLogin);
   } else if (storage.pendingReplay) {
+    console.log('[ScrapAI Content] Found pending replay, executing...');
     await executeReplayActions(storage.pendingReplay);
   } else if (storage.isRecording) {
+    console.log('[ScrapAI Content] Recording mode active');
     setupActionRecorder();
   } else {
+    console.log('[ScrapAI Content] No pending task, checking for auto-fill...');
     await autoFillIfSaved();
   }
 })();
