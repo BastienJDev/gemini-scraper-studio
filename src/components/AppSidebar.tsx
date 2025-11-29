@@ -1,4 +1,4 @@
-import { Zap, List, MessageSquare, Globe, Filter, Settings, KeyRound, ExternalLink, ChevronDown, Briefcase, Newspaper } from "lucide-react";
+import { Zap, List, MessageSquare, Globe, Filter, Settings, KeyRound, ExternalLink, ChevronDown, Briefcase, Newspaper, FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +46,7 @@ const navItems = [
   { title: "Ma Liste", url: "/sites", icon: List },
   { title: "Offres d'emploi", url: "/emploi", icon: Briefcase },
   { title: "Actualités", url: "/actualites", icon: Newspaper },
-  { title: "Scraper Python", url: "/scraper-config", icon: Settings },
+  { title: "Bibliothèque PDF", url: "/bibliotheque", icon: FileText },
 ];
 
 interface AppSidebarProps {
