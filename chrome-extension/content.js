@@ -15,6 +15,12 @@
 function setupRecording() {
   console.log('[ScrapAI] Mode enregistrement activé');
   
+  // Store credentials as user types (before form submission clears them)
+  let capturedUsername = '';
+  let capturedPassword = '';
+  let usernameField = null;
+  let passwordField = null;
+  
   // Show recording indicator with stop button
   const indicator = document.createElement('div');
   indicator.id = 'scrapai-recording';
@@ -76,65 +82,72 @@ function setupRecording() {
     });
   });
 
+  // Track input values in real-time
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (target.type === 'password') {
+      capturedPassword = target.value;
+      passwordField = target;
+      console.log('[ScrapAI] Password capturé');
+    } else if (target.type === 'email' || target.type === 'text' || target.name === 'username' || target.name === 'email' || target.name === 'login') {
+      // Only capture if it looks like a username/email field near a password field
+      const form = target.closest('form') || document;
+      if (form.querySelector('input[type="password"]')) {
+        capturedUsername = target.value;
+        usernameField = target;
+        console.log('[ScrapAI] Username capturé');
+      }
+    }
+  }, true);
+
+  // Capture on form submission
+  const saveLogin = () => {
+    if (!capturedPassword || !capturedUsername) {
+      console.log('[ScrapAI] Credentials manquants:', { hasUser: !!capturedUsername, hasPass: !!capturedPassword });
+      return;
+    }
+
+    const site = {
+      url: window.location.href,
+      username: capturedUsername,
+      password: capturedPassword,
+      usernameSelector: usernameField ? buildSelector(usernameField) : 'input[type="email"], input[name="email"], input[name="username"]',
+      passwordSelector: passwordField ? buildSelector(passwordField) : 'input[type="password"]',
+      submitSelector: 'button[type="submit"], input[type="submit"], button:not([type])'
+    };
+
+    console.log('[ScrapAI] Login capturé:', { ...site, password: '***' });
+
+    chrome.storage.local.get('sites', ({ sites = [] }) => {
+      const domain = new URL(site.url).hostname;
+      const existingIndex = sites.findIndex(s => {
+        try { return new URL(s.url).hostname === domain; } catch { return false; }
+      });
+      
+      if (existingIndex >= 0) {
+        sites[existingIndex] = site;
+      } else {
+        sites.push(site);
+      }
+      
+      chrome.storage.local.set({ sites }, () => {
+        showNotification('✓ Login enregistré ! Clique sur Arrêter quand tu as fini.');
+      });
+    });
+  };
+
   // Track form submissions
-  document.addEventListener('submit', captureLogin, true);
+  document.addEventListener('submit', saveLogin, true);
   
   // Track click on buttons that might submit
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('button, input[type="submit"], [role="button"]');
     if (btn) {
-      setTimeout(() => captureLogin(), 100);
+      setTimeout(saveLogin, 100);
     }
   }, true);
 }
 
-function captureLogin() {
-  // Find password field (key indicator of login form)
-  const passwordField = document.querySelector('input[type="password"]');
-  if (!passwordField || !passwordField.value) return;
-
-  // Find username/email field
-  const form = passwordField.closest('form') || document;
-  const usernameField = form.querySelector(
-    'input[type="email"], input[name="email"], input[name="username"], input[name="login"], input[type="text"]'
-  );
-  
-  if (!usernameField || !usernameField.value) return;
-
-  // Find submit button
-  const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
-
-  // Build selectors
-  const site = {
-    url: window.location.href,
-    username: usernameField.value,
-    password: passwordField.value,
-    usernameSelector: buildSelector(usernameField),
-    passwordSelector: buildSelector(passwordField),
-    submitSelector: submitBtn ? buildSelector(submitBtn) : 'button[type="submit"]'
-  };
-
-  console.log('[ScrapAI] Login capturé:', { ...site, password: '***' });
-
-  // Save login (keep recording active)
-  chrome.storage.local.get('sites', ({ sites = [] }) => {
-    const domain = new URL(site.url).hostname;
-    const existingIndex = sites.findIndex(s => {
-      try { return new URL(s.url).hostname === domain; } catch { return false; }
-    });
-    
-    if (existingIndex >= 0) {
-      sites[existingIndex] = site;
-    } else {
-      sites.push(site);
-    }
-    
-    // Save but DON'T stop recording - user must stop manually
-    chrome.storage.local.set({ sites }, () => {
-      showNotification('✓ Login enregistré ! Arrête l\'enregistrement via l\'extension.');
-    });
-  });
-}
 
 function buildSelector(element) {
   // Try ID first
