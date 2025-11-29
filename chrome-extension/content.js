@@ -1,5 +1,61 @@
 // Content script - Handles action recording and automated login replay
 
+// Listen for custom events from web pages (for AutoLogin button integration)
+window.addEventListener('SCRAPAI_AUTO_LOGIN', async (event) => {
+  const { siteId } = event.detail || {};
+  console.log('[ScrapAI Content] Received AUTO_LOGIN event for:', siteId);
+  
+  if (!siteId) {
+    console.error('[ScrapAI Content] No siteId provided');
+    return;
+  }
+  
+  // Load the sites config
+  try {
+    const response = await fetch(chrome.runtime.getURL('sites-config.js'));
+    const text = await response.text();
+    
+    // Extract SITES_CONFIG from the file
+    const configMatch = text.match(/const SITES_CONFIG = (\{[\s\S]*?\});/);
+    if (!configMatch) {
+      console.error('[ScrapAI Content] Could not parse sites-config.js');
+      return;
+    }
+    
+    // Use Function to safely evaluate the config object
+    const SITES_CONFIG = eval('(' + configMatch[1] + ')');
+    const siteConfig = SITES_CONFIG[siteId];
+    
+    if (!siteConfig) {
+      console.error('[ScrapAI Content] Site not found:', siteId);
+      showNotification(`Site "${siteId}" non trouvé dans la configuration`, true);
+      return;
+    }
+    
+    if (!siteConfig.startUrl || siteConfig.actions.length === 0) {
+      showNotification(`Configuration incomplète pour ${siteConfig.name}`, true);
+      return;
+    }
+    
+    // Store the login task and open the site
+    const loginTask = {
+      siteId,
+      config: siteConfig,
+      currentStep: 0
+    };
+    
+    await chrome.storage.local.set({ pendingLogin: loginTask });
+    showNotification(`Ouverture de ${siteConfig.name}...`, false);
+    
+    // Open the site in a new tab
+    window.open(siteConfig.startUrl, '_blank');
+    
+  } catch (error) {
+    console.error('[ScrapAI Content] Error handling AUTO_LOGIN:', error);
+    showNotification('Erreur lors du lancement', true);
+  }
+});
+
 (async function() {
   console.log('[ScrapAI Content] Script loaded on:', window.location.href);
   
