@@ -247,7 +247,7 @@ function extractTextFromHtml(html: string): string {
     }
   }
 
-  return uniqueLines.join('\n').substring(0, 12000);
+  return uniqueLines.join('\n').substring(0, 25000); // 25K per page
 }
 
 function extractTitle(html: string): string {
