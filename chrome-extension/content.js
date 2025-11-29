@@ -1,4 +1,4 @@
-// Content script - Record and replay user actions
+// Content script - Record and replay user actions via background script
 (async () => {
   const { isRecording } = await chrome.storage.local.get('isRecording');
   
@@ -12,23 +12,18 @@
 async function setupActionRecorder() {
   console.log('[ScrapAI] Enregistreur d\'actions activé');
   
-  // Load existing recorded actions (persisted across page loads)
-  let { recordedActions = [], recordingStartTime = Date.now(), recordingDomain = '' } = 
-    await chrome.storage.local.get(['recordedActions', 'recordingStartTime', 'recordingDomain']);
+  // Get current state from background script
+  const state = await chrome.runtime.sendMessage({ type: 'GET_RECORDING_STATE' });
+  const startTime = state.startTime || Date.now();
+  let actionCount = state.count || 0;
   
-  const currentDomain = window.location.hostname;
-  
-  // If we're on a different domain, reset recording
-  if (recordingDomain && recordingDomain !== currentDomain) {
-    recordedActions = [];
-    recordingStartTime = Date.now();
+  // If not recording in background, start it
+  if (!state.isRecording) {
+    await chrome.runtime.sendMessage({ 
+      type: 'START_RECORDING', 
+      domain: window.location.hostname 
+    });
   }
-  
-  // Save current domain
-  await chrome.storage.local.set({ 
-    recordingDomain: currentDomain,
-    recordingStartTime: recordingStartTime 
-  });
   
   // UI Panel
   const panel = document.createElement('div');
@@ -99,7 +94,7 @@ async function setupActionRecorder() {
       <span class="dot"></span>
       <span>Enregistrement...</span>
     </div>
-    <div class="count" id="scrapai-count">${recordedActions.length} actions</div>
+    <div class="count" id="scrapai-count">${actionCount} actions</div>
     <div class="buttons">
       <button class="stop-btn" id="scrapai-stop">Annuler</button>
       <button class="save-btn" id="scrapai-save">Sauvegarder</button>
@@ -109,10 +104,10 @@ async function setupActionRecorder() {
   
   const countEl = document.getElementById('scrapai-count');
   
-  // Helper to save actions to storage
-  const saveActionsToStorage = async () => {
-    await chrome.storage.local.set({ recordedActions });
-    countEl.textContent = `${recordedActions.length} actions`;
+  // Update count display
+  const updateCount = (count) => {
+    actionCount = count;
+    countEl.textContent = `${count} actions`;
   };
   
   // Record clicks
@@ -121,14 +116,17 @@ async function setupActionRecorder() {
     
     const action = {
       type: 'click',
-      time: Date.now() - recordingStartTime,
+      time: Date.now() - startTime,
       selector: buildSelector(e.target),
       x: e.clientX,
       y: e.clientY
     };
-    recordedActions.push(action);
-    await saveActionsToStorage();
-    console.log('[ScrapAI] Click enregistré:', action.selector);
+    
+    const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
+    if (response.success) {
+      updateCount(response.count);
+      console.log('[ScrapAI] Click enregistré:', action.selector);
+    }
   }, true);
   
   // Record typing
@@ -136,25 +134,19 @@ async function setupActionRecorder() {
     if (e.target.closest('#scrapai-recorder')) return;
     if (!e.target.matches('input, textarea')) return;
     
-    const selector = buildSelector(e.target);
-    // Update existing input action instead of creating duplicates
-    const existingIndex = recordedActions.findIndex(a => a.type === 'input' && a.selector === selector);
-    
     const action = {
       type: 'input',
-      time: Date.now() - recordingStartTime,
-      selector: selector,
+      time: Date.now() - startTime,
+      selector: buildSelector(e.target),
       value: e.target.value,
       inputType: e.target.type || 'text'
     };
     
-    if (existingIndex >= 0) {
-      recordedActions[existingIndex] = action;
-    } else {
-      recordedActions.push(action);
+    const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
+    if (response.success) {
+      updateCount(response.count);
+      console.log('[ScrapAI] Input enregistré:', action.selector);
     }
-    await saveActionsToStorage();
-    console.log('[ScrapAI] Input enregistré:', action.selector);
   }, true);
   
   // Record Enter key (form submit)
@@ -163,69 +155,42 @@ async function setupActionRecorder() {
     if (e.key === 'Enter') {
       const action = {
         type: 'enter',
-        time: Date.now() - recordingStartTime,
+        time: Date.now() - startTime,
         selector: buildSelector(e.target)
       };
-      recordedActions.push(action);
-      await saveActionsToStorage();
+      
+      const response = await chrome.runtime.sendMessage({ type: 'ADD_ACTION', action });
+      if (response.success) {
+        updateCount(response.count);
+      }
     }
   }, true);
   
   // Cancel button
   document.getElementById('scrapai-stop').addEventListener('click', async () => {
-    await chrome.storage.local.set({ 
-      isRecording: false, 
-      recordedActions: [],
-      recordingDomain: ''
-    });
+    await chrome.runtime.sendMessage({ type: 'STOP_RECORDING' });
     panel.remove();
     showNotification('Enregistrement annulé');
   });
   
   // Save button
   document.getElementById('scrapai-save').addEventListener('click', async () => {
-    if (recordedActions.length === 0) {
+    const state = await chrome.runtime.sendMessage({ type: 'GET_RECORDING_STATE' });
+    
+    if (state.count === 0) {
       alert('Aucune action enregistrée !');
       return;
     }
     
-    const site = {
-      url: window.location.href,
-      actions: recordedActions,
-      recordedAt: new Date().toISOString()
-    };
-    
-    // Extract username/password from recorded inputs for display
-    const inputs = recordedActions.filter(a => a.type === 'input');
-    const passwordInput = inputs.find(a => a.inputType === 'password');
-    const usernameInput = inputs.find(a => a.inputType !== 'password');
-    
-    if (usernameInput) site.username = usernameInput.value;
-    if (passwordInput) site.password = passwordInput.value;
-    
-    console.log('[ScrapAI] Sauvegarde:', recordedActions.length, 'actions');
-    
-    const { sites = [] } = await chrome.storage.local.get('sites');
-    const domain = new URL(site.url).hostname;
-    const existingIndex = sites.findIndex(s => {
-      try { return new URL(s.url).hostname === domain; } catch { return false; }
+    const response = await chrome.runtime.sendMessage({ 
+      type: 'SAVE_SITE', 
+      url: window.location.href 
     });
     
-    if (existingIndex >= 0) {
-      sites[existingIndex] = site;
-    } else {
-      sites.push(site);
+    if (response.success) {
+      panel.remove();
+      showNotification(`✓ ${response.count} actions sauvegardées !`);
     }
-    
-    await chrome.storage.local.set({ 
-      sites, 
-      isRecording: false,
-      recordedActions: [],
-      recordingDomain: ''
-    });
-    
-    panel.remove();
-    showNotification(`✓ ${recordedActions.length} actions sauvegardées !`);
   });
 }
 
