@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const recordBtn = document.getElementById('recordBtn');
+  const toggleManual = document.getElementById('toggleManual');
+  const manualForm = document.getElementById('manualForm');
   const urlInput = document.getElementById('url');
   const usernameInput = document.getElementById('username');
   const passwordInput = document.getElementById('password');
@@ -6,14 +9,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordSelectorInput = document.getElementById('passwordSelector');
   const submitSelectorInput = document.getElementById('submitSelector');
   const saveBtn = document.getElementById('saveBtn');
-  const loginBtn = document.getElementById('loginBtn');
   const status = document.getElementById('status');
   const sitesList = document.getElementById('sitesList');
 
   // Load saved sites
   loadSites();
 
-  // Save site
+  // Toggle manual form
+  toggleManual.addEventListener('click', () => {
+    manualForm.classList.toggle('show');
+    toggleManual.textContent = manualForm.classList.contains('show') 
+      ? '▲ Masquer les options manuelles' 
+      : '▼ Afficher les options manuelles';
+  });
+
+  // Record button - Start recording mode
+  recordBtn.addEventListener('click', async () => {
+    // Enable recording mode
+    await chrome.storage.local.set({ isRecording: true });
+    
+    // Get current tab or create new one
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (tab && tab.url && !tab.url.startsWith('chrome://')) {
+      // Reload current tab to activate recording
+      chrome.tabs.reload(tab.id);
+      showStatus('Mode enregistrement activé ! Connecte-toi sur la page.', 'success');
+    } else {
+      showStatus('Va sur une page de login et clique à nouveau sur Enregistrer', 'error');
+    }
+    
+    // Close popup
+    setTimeout(() => window.close(), 1500);
+  });
+
+  // Save site manually
   saveBtn.addEventListener('click', async () => {
     const site = {
       url: urlInput.value,
@@ -33,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const domain = new URL(site.url).hostname;
     
     // Update or add
-    const existingIndex = sites.findIndex(s => new URL(s.url).hostname === domain);
+    const existingIndex = sites.findIndex(s => {
+      try { return new URL(s.url).hostname === domain; } catch { return false; }
+    });
     if (existingIndex >= 0) {
       sites[existingIndex] = site;
     } else {
@@ -46,41 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     clearForm();
   });
 
-  // Login now
-  loginBtn.addEventListener('click', async () => {
-    const site = {
-      url: urlInput.value,
-      username: usernameInput.value,
-      password: passwordInput.value,
-      usernameSelector: usernameSelectorInput.value || 'input[name="email"], input[name="username"], input[type="email"]',
-      passwordSelector: passwordSelectorInput.value || 'input[name="password"], input[type="password"]',
-      submitSelector: submitSelectorInput.value || 'button[type="submit"], input[type="submit"]'
-    };
-
-    if (!site.url || !site.username || !site.password) {
-      showStatus('Remplis URL, email et mot de passe', 'error');
-      return;
-    }
-
-    // Open tab and inject script
-    const tab = await chrome.tabs.create({ url: site.url });
-    
-    // Wait for page to load then inject
-    chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-      if (tabId === tab.id && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(listener);
-        
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: performLogin,
-          args: [site]
-        });
-      }
-    });
-
-    showStatus('Connexion en cours...', 'success');
-  });
-
   async function loadSites() {
     const { sites = [] } = await chrome.storage.local.get('sites');
     
@@ -90,12 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     sitesList.innerHTML = sites.map((site, index) => {
-      const domain = new URL(site.url).hostname;
+      let domain;
+      try {
+        domain = new URL(site.url).hostname;
+      } catch {
+        domain = site.url;
+      }
       return `
         <div class="site-item">
           <span class="domain">${domain}</span>
-          <div>
-            <button class="btn-secondary" data-action="login" data-index="${index}">Connecter</button>
+          <div class="actions">
+            <button class="btn-secondary" data-action="login" data-index="${index}">▶ Connecter</button>
             <button class="btn-secondary" data-action="delete" data-index="${index}">×</button>
           </div>
         </div>
@@ -128,6 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
               });
             }
           });
+          
+          window.close();
         }
       });
     });
