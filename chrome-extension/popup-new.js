@@ -132,7 +132,7 @@ async function startLogin(siteId, username, password) {
     return;
   }
   
-  showStatus('Ouverture du site...', 'info');
+  showStatus('Préparation...', 'info');
   
   // Store the login task
   const loginTask = {
@@ -144,13 +144,24 @@ async function startLogin(siteId, username, password) {
     startedAt: Date.now()
   };
   
+  // Set storage and wait for it to complete
   await new Promise((resolve) => {
-    chrome.storage.local.set({ pendingLogin: loginTask }, resolve);
+    chrome.storage.local.set({ pendingLogin: loginTask }, () => {
+      console.log('[ScrapAI Popup] Login task stored:', loginTask);
+      resolve();
+    });
   });
+  
+  // Small delay to ensure storage is ready
+  await new Promise(r => setTimeout(r, 100));
+  
+  showStatus('Ouverture du site...', 'info');
   
   // Open the site in a new tab
   chrome.tabs.create({ url: config.startUrl }, (tab) => {
+    console.log('[ScrapAI Popup] Tab created:', tab.id);
     showStatus('Connexion en cours...', 'info');
+    window.close();
   });
 }
 
