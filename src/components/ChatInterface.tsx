@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import sitesData from "@/data/sites.json";
 import { exportToPDF, exportToWord } from "@/utils/exportDocument";
+import { MessageContent } from "@/components/MessageContent";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -401,8 +402,10 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                       : "bg-secondary/50 text-foreground border border-border/30"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {message.content || (
+                <div className="text-sm">
+                    {message.content ? (
+                      <MessageContent content={message.content} />
+                    ) : (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         {scrapingProgress 
@@ -411,7 +414,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
                         }
                       </span>
                     )}
-                  </p>
+                  </div>
                   {/* Export buttons for assistant messages with content */}
                   {message.role === "assistant" && message.content && (
                     <div className="mt-3 pt-3 border-t border-border/30 flex gap-2">
