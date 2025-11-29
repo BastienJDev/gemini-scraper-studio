@@ -35,7 +35,11 @@ const Index = () => {
           
           {/* Chat Interface */}
           <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-            <ChatInterface selectedCategories={selectedCategories} />
+            <ChatInterface 
+              selectedCategories={selectedCategories}
+              onCategoryToggle={toggleCategory}
+              onClearCategories={clearCategories}
+            />
           </div>
         </main>
       </div>
