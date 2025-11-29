@@ -10,7 +10,7 @@ const SITES_CONFIG = {
       password: "Enzomatteo12@"
     },
     actions: [
-      { type: "click", selector: "button:has-text('inscrire'), button:has-text('Inscrire'), a:has-text('inscrire'), .sign-in-btn, button.btn-primary", role: "button", roleName: "inscrire", delay: 2000 },
+      { type: "click", selector: "span[translate='eshelf.signin.title'], span:has-text('S\\'identifier'), a:has-text('S\\'identifier'), button:has-text('S\\'identifier')", role: "button", roleName: "S'identifier", delay: 2000 },
       { type: "waitForSelector", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", timeout: 15000 },
       { type: "fill", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", valueKey: "username", delay: 500 },
       { type: "fill", selector: "#password, input[name='password'], input[name='j_password'], input[type='password']", valueKey: "password", delay: 500 },
