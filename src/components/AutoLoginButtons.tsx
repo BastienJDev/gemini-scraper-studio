@@ -10,6 +10,7 @@ const SITES = [
   { id: "cairn", name: "Cairn", icon: "📰" },
   { id: "generalis", name: "Généralis", icon: "📑" },
   { id: "ledoctrinal", name: "Le Doctrinal", icon: "📜" },
+  { id: "droitdusport", name: "Droit du Sport", icon: "⚽" },
 ];
 
 export const AutoLoginButtons = () => {
