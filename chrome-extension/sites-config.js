@@ -10,11 +10,11 @@ const SITES_CONFIG = {
       password: "Enzomatteo12@"
     },
     actions: [
-      { type: "click", selector: "span[translate='eshelf.signin.title'], span:has-text('S\\'identifier'), a:has-text('S\\'identifier'), button:has-text('S\\'identifier')", role: "button", roleName: "S'identifier", delay: 2000 },
-      { type: "waitForSelector", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", timeout: 15000 },
-      { type: "fill", selector: "#username, input[name='username'], input[name='j_username'], input[type='email']", valueKey: "username", delay: 500 },
-      { type: "fill", selector: "#password, input[name='password'], input[name='j_password'], input[type='password']", valueKey: "password", delay: 500 },
-      { type: "click", selector: "button[type='submit'], input[type='submit'], button:has-text('Connexion'), button:has-text('CONNEXION'), button:has-text('Se connecter')", role: "button", roleName: "Connexion", delay: 3000 },
+      { type: "click", selector: "span[translate='eshelf.signin.title'], span:has-text('S\\'identifier')", role: "button", roleName: "S'identifier", delay: 2000 },
+      { type: "waitForSelector", selector: "#username", timeout: 15000 },
+      { type: "fill", selector: "#username", valueKey: "username", delay: 500 },
+      { type: "fill", selector: "#password", valueKey: "password", delay: 500 },
+      { type: "click", selector: "button[name='submitBtn'], button.btn-primary[type='submit']", role: "button", roleName: "CONNEXION", delay: 3000 },
       { type: "waitForNavigation", delay: 4000 },
       { type: "click", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", delay: 1500 },
       { type: "fill", selector: "input[type='search'], input[placeholder*='Rechercher'], input[aria-label*='Rechercher'], [role='combobox']", value: "dalloz", delay: 1000 },
