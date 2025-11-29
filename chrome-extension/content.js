@@ -9,13 +9,26 @@
   }
 })();
 
-let recordedActions = [];
-let recordingStartTime = 0;
-
-function setupActionRecorder() {
+async function setupActionRecorder() {
   console.log('[ScrapAI] Enregistreur d\'actions activé');
-  recordedActions = [];
-  recordingStartTime = Date.now();
+  
+  // Load existing recorded actions (persisted across page loads)
+  let { recordedActions = [], recordingStartTime = Date.now(), recordingDomain = '' } = 
+    await chrome.storage.local.get(['recordedActions', 'recordingStartTime', 'recordingDomain']);
+  
+  const currentDomain = window.location.hostname;
+  
+  // If we're on a different domain, reset recording
+  if (recordingDomain && recordingDomain !== currentDomain) {
+    recordedActions = [];
+    recordingStartTime = Date.now();
+  }
+  
+  // Save current domain
+  await chrome.storage.local.set({ 
+    recordingDomain: currentDomain,
+    recordingStartTime: recordingStartTime 
+  });
   
   // UI Panel
   const panel = document.createElement('div');
@@ -35,7 +48,7 @@ function setupActionRecorder() {
         font-size: 13px;
         z-index: 2147483647;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        min-width: 200px;
+        min-width: 220px;
       }
       #scrapai-recorder .header {
         display: flex;
@@ -86,7 +99,7 @@ function setupActionRecorder() {
       <span class="dot"></span>
       <span>Enregistrement...</span>
     </div>
-    <div class="count" id="scrapai-count">0 actions</div>
+    <div class="count" id="scrapai-count">${recordedActions.length} actions</div>
     <div class="buttons">
       <button class="stop-btn" id="scrapai-stop">Annuler</button>
       <button class="save-btn" id="scrapai-save">Sauvegarder</button>
@@ -96,8 +109,14 @@ function setupActionRecorder() {
   
   const countEl = document.getElementById('scrapai-count');
   
+  // Helper to save actions to storage
+  const saveActionsToStorage = async () => {
+    await chrome.storage.local.set({ recordedActions });
+    countEl.textContent = `${recordedActions.length} actions`;
+  };
+  
   // Record clicks
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     if (e.target.closest('#scrapai-recorder')) return;
     
     const action = {
@@ -108,18 +127,18 @@ function setupActionRecorder() {
       y: e.clientY
     };
     recordedActions.push(action);
-    countEl.textContent = `${recordedActions.length} actions`;
+    await saveActionsToStorage();
     console.log('[ScrapAI] Click enregistré:', action.selector);
   }, true);
   
   // Record typing
-  document.addEventListener('input', (e) => {
+  document.addEventListener('input', async (e) => {
     if (e.target.closest('#scrapai-recorder')) return;
     if (!e.target.matches('input, textarea')) return;
     
-    // Remove previous input action on same element to avoid duplicates
     const selector = buildSelector(e.target);
-    recordedActions = recordedActions.filter(a => !(a.type === 'input' && a.selector === selector));
+    // Update existing input action instead of creating duplicates
+    const existingIndex = recordedActions.findIndex(a => a.type === 'input' && a.selector === selector);
     
     const action = {
       type: 'input',
@@ -128,13 +147,18 @@ function setupActionRecorder() {
       value: e.target.value,
       inputType: e.target.type || 'text'
     };
-    recordedActions.push(action);
-    countEl.textContent = `${recordedActions.length} actions`;
+    
+    if (existingIndex >= 0) {
+      recordedActions[existingIndex] = action;
+    } else {
+      recordedActions.push(action);
+    }
+    await saveActionsToStorage();
     console.log('[ScrapAI] Input enregistré:', action.selector);
   }, true);
   
   // Record Enter key (form submit)
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', async (e) => {
     if (e.target.closest('#scrapai-recorder')) return;
     if (e.key === 'Enter') {
       const action = {
@@ -143,19 +167,23 @@ function setupActionRecorder() {
         selector: buildSelector(e.target)
       };
       recordedActions.push(action);
-      countEl.textContent = `${recordedActions.length} actions`;
+      await saveActionsToStorage();
     }
   }, true);
   
   // Cancel button
-  document.getElementById('scrapai-stop').addEventListener('click', () => {
-    chrome.storage.local.set({ isRecording: false });
+  document.getElementById('scrapai-stop').addEventListener('click', async () => {
+    await chrome.storage.local.set({ 
+      isRecording: false, 
+      recordedActions: [],
+      recordingDomain: ''
+    });
     panel.remove();
     showNotification('Enregistrement annulé');
   });
   
   // Save button
-  document.getElementById('scrapai-save').addEventListener('click', () => {
+  document.getElementById('scrapai-save').addEventListener('click', async () => {
     if (recordedActions.length === 0) {
       alert('Aucune action enregistrée !');
       return;
@@ -177,23 +205,27 @@ function setupActionRecorder() {
     
     console.log('[ScrapAI] Sauvegarde:', recordedActions.length, 'actions');
     
-    chrome.storage.local.get('sites', ({ sites = [] }) => {
-      const domain = new URL(site.url).hostname;
-      const existingIndex = sites.findIndex(s => {
-        try { return new URL(s.url).hostname === domain; } catch { return false; }
-      });
-      
-      if (existingIndex >= 0) {
-        sites[existingIndex] = site;
-      } else {
-        sites.push(site);
-      }
-      
-      chrome.storage.local.set({ sites, isRecording: false }, () => {
-        panel.remove();
-        showNotification(`✓ ${recordedActions.length} actions sauvegardées !`);
-      });
+    const { sites = [] } = await chrome.storage.local.get('sites');
+    const domain = new URL(site.url).hostname;
+    const existingIndex = sites.findIndex(s => {
+      try { return new URL(s.url).hostname === domain; } catch { return false; }
     });
+    
+    if (existingIndex >= 0) {
+      sites[existingIndex] = site;
+    } else {
+      sites.push(site);
+    }
+    
+    await chrome.storage.local.set({ 
+      sites, 
+      isRecording: false,
+      recordedActions: [],
+      recordingDomain: ''
+    });
+    
+    panel.remove();
+    showNotification(`✓ ${recordedActions.length} actions sauvegardées !`);
   });
 }
 
