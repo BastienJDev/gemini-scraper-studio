@@ -87,7 +87,7 @@ export function AppSidebar({
           </div>
           {!collapsed && (
             <div>
-              <h1 className="text-base font-semibold text-sidebar-foreground">ScrapAI</h1>
+              <h1 className="text-base font-semibold text-sidebar-foreground">Enzo P.</h1>
               <p className="text-[10px] text-sidebar-foreground/60">Recherche sur vos sites</p>
             </div>
           )}
