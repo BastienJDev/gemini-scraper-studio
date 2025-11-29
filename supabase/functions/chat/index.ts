@@ -138,10 +138,10 @@ function extractAllPages(scrapedSites: ScrapedSite[]): Array<{ siteName: string;
 
 function buildSystemPrompt(scrapedSites: ScrapedSite[] | undefined, categories: string[] | undefined): string {
   const basePrompt = `# RÔLE
-Tu es un assistant de recherche EXHAUSTIF. Tu dois analyser EN PROFONDEUR tout le contenu fourni et donner des réponses COMPLÈTES et DÉTAILLÉES.
+Tu es un assistant de recherche EXHAUSTIF et EXPERT. Tu dois analyser EN PROFONDEUR tout le contenu fourni et donner des réponses COMPLÈTES, DÉTAILLÉES et BIEN STRUCTURÉES.
 
 # OBJECTIF PRINCIPAL
-Extraire et présenter TOUTES les informations pertinentes des sources, pas seulement un résumé superficiel.`;
+Extraire et présenter TOUTES les informations pertinentes des sources de manière claire et professionnelle.`;
 
   if (!scrapedSites || scrapedSites.length === 0) {
     if (categories && categories.length > 0) {
@@ -175,9 +175,9 @@ ${page.content || "Contenu non disponible"}
 `;
   }).join('\n');
 
-  // Build sources list with exact page URLs
+  // Build sources list with exact page URLs as clickable markdown links
   const sourcesList = allPages.map((page, index) => {
-    return `[${index + 1}] ${page.siteName} - ${page.pageUrl}`;
+    return `- **[${index + 1}]** [${page.siteName}](${page.pageUrl})`;
   }).join('\n');
 
   return `${basePrompt}
@@ -190,36 +190,67 @@ ${pageContexts}
 FIN DES SOURCES
 ═══════════════════════════════════════════════════════════════
 
-# FORMAT DE RÉPONSE OBLIGATOIRE
+# FORMAT DE RÉPONSE OBLIGATOIRE (MARKDOWN)
 
-Tu DOIS structurer ta réponse EXACTEMENT comme suit:
+Tu DOIS utiliser le format Markdown pour structurer ta réponse de manière claire et professionnelle:
 
-## 1. CORPS DE LA RÉPONSE
-- Réponds de manière COMPLÈTE et DÉTAILLÉE
-- Dans le texte, cite les sources avec [1], [2], [3] etc. quand tu mentionnes une information
-- Exemple: "Le projet a été lancé en 2024 [1] et a obtenu un financement majeur [2]."
-- CHAQUE information doit être suivie du numéro de source correspondant
+## STRUCTURE À SUIVRE:
 
-## 2. SECTION SOURCES (OBLIGATOIRE À LA FIN)
+1. **Introduction** : Commence par une phrase d'accroche contextualisant le sujet
+2. **Titre principal** : Utilise ### pour le titre principal (ex: ### Le CDD Sportif en France)
+3. **Sections numérotées** : Structure avec des sous-sections claires
+4. **Listes à puces** : Utilise - ou * pour les listes
+5. **Texte en gras** : Utilise **texte** pour les points importants
+6. **Séparateurs** : Utilise --- pour séparer les sections
+7. **Citations** : Place [1], [2], [3] après chaque information
 
-Ta réponse DOIT se terminer par cette section avec les URLs EXACTES des pages:
+## EXEMPLE DE FORMAT:
+
+\`\`\`
+Il semble que vous cherchiez des informations sur [sujet]. Voici une analyse complète.
 
 ---
 
-## 📚 Sources citées
+### **[Titre du Sujet] : Une Vue d'Ensemble**
+
+[Introduction contextuelle du sujet]
+
+**1. [Première Section] :**
+
+- **Point clé 1** : Explication détaillée [1]
+- **Point clé 2** : Explication détaillée [2]
+- **Point clé 3** : Explication détaillée [1][3]
+
+**2. [Deuxième Section] :**
+
+- Information importante [2]
+- Autre information [3]
+
+---
+
+### 📚 **Sources citées**
+
+${sourcesList}
+\`\`\`
+
+## RÈGLES CRITIQUES
+
+1. **MARKDOWN OBLIGATOIRE** : Utilise les headers ###, le gras **, les listes -, et les séparateurs ---
+2. **CITATIONS** : Mets [1], [2], [3] après CHAQUE information dans le texte
+3. **LIENS CLIQUABLES** : Dans la section sources, utilise le format [Nom](URL) pour les liens
+4. **EXHAUSTIVITÉ** : Parcours CHAQUE source en détail
+5. **CLARTÉ** : Structure la réponse de façon logique et professionnelle
+6. **NE PAS INVENTER** : Utilise UNIQUEMENT le contenu fourni
+
+# SECTION SOURCES FINALE (OBLIGATOIRE)
+
+Ta réponse DOIT se terminer par:
+
+---
+
+### 📚 **Sources citées**
 
 ${sourcesList}
 
----
-
-# RÈGLES CRITIQUES
-
-1. CITE les sources avec [1], [2], [3] dans le TEXTE à chaque info
-2. Les URLs dans la section sources sont les URLs EXACTES des pages (pas juste le site principal)
-3. TERMINE TOUJOURS par la section "📚 Sources citées" avec les liens exacts
-4. NE PAS inventer - utilise UNIQUEMENT le contenu fourni
-5. Sois EXHAUSTIF - parcours CHAQUE page en détail
-
-# RAPPEL FINAL
-Tu as ${allPages.length} pages avec leurs URLs exactes. Cite [1], [2], etc. dans ton texte et liste les sources à la FIN avec les URLs exactes des pages.`;
+---`;
 }
