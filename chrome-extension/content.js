@@ -23,7 +23,8 @@ function setupRecording() {
       #scrapai-recording {
         position: fixed;
         top: 10px;
-        right: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         background: #ef4444;
         color: white;
         padding: 8px 16px;
