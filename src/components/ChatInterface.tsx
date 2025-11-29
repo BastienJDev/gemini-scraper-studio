@@ -107,7 +107,7 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
       .filter(site => isValidUrl(site.url));
   };
 
-  // Scrape a single site
+  // Scrape a single site with deep crawling
   const scrapeSite = async (site: { name: string; url: string }): Promise<ScrapedSite | null> => {
     try {
       const response = await fetch(SCRAPE_URL, {
@@ -116,20 +116,22 @@ export const ChatInterface = ({ selectedCategories = [], scrapedData }: ChatInte
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ url: site.url }),
+        body: JSON.stringify({ url: site.url, deep: true }),
       });
 
       const data = await response.json();
       
-      // Check for success in the response data (not just HTTP status)
+      // Check for success in the response data
       if (!data.success) {
         return null;
       }
 
+      console.log(`Scraped ${site.name}: ${data.pagesScraped || 1} pages, ${data.content?.length || 0} chars`);
+
       return {
         url: site.url,
         title: data.title || site.name,
-        content: data.content?.substring(0, 5000) || "", // Limit content per site
+        content: data.content?.substring(0, 8000) || "", // More content per site with deep scraping
         siteName: site.name,
       };
     } catch (error) {
