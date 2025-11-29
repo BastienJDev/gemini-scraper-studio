@@ -88,6 +88,10 @@ async function executeAction(action, credentials) {
       await executeDblClick(action);
       break;
       
+    case 'clickLink':
+      await executeClickLink(action);
+      break;
+      
     case 'fill':
       await executeFill(action, credentials);
       break;
@@ -135,6 +139,29 @@ async function executeDblClick(action) {
   
   // Simulate realistic double-click
   simulateDblClick(element);
+}
+
+// Execute click on link - navigates directly to href (bypasses ng-click preventDefault)
+async function executeClickLink(action) {
+  const element = await findElement(action);
+  
+  if (!element) {
+    throw new Error(`Element not found: ${action.selector || action.roleName}`);
+  }
+  
+  // Scroll into view
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  await sleep(200);
+  
+  // Get the href and navigate directly
+  const href = element.getAttribute('href') || element.getAttribute('ng-href');
+  if (href) {
+    console.log('[ScrapAI] Navigating to:', href);
+    window.location.href = href;
+  } else {
+    // Fallback to click
+    simulateClick(element);
+  }
 }
 
 // Execute fill action

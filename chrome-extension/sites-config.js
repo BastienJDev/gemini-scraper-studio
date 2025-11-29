@@ -19,8 +19,8 @@ const SITES_CONFIG = {
       { type: "fill", selector: "#searchBarJournal", value: "Dalloz", delay: 500 },
       { type: "click", selector: "button.submit-button.button-confirm, button[aria-label='Soumettre la recherche']", delay: 2000 },
       { type: "click", selector: "mark:has-text('Dalloz'), span:has-text('Dalloz')", delay: 2000 },
-      { type: "click", selector: "a.item-title:has-text('Dalloz - Base de données')", delay: 2000 },
-      { type: "dblclick", selector: "a.item-title:has-text('Dalloz - Base de données - Abonnement')", delay: 2000 }
+      { type: "clickLink", selector: "a.item-title:has-text('Dalloz - Base de données')", delay: 2000 },
+      { type: "clickLink", selector: "a.item-title:has-text('Dalloz - Base de données - Abonnement')", delay: 2000 }
     ]
   },
   droitdusport: {
