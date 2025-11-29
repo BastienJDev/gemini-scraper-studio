@@ -17,7 +17,7 @@
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       color: #e4e4e7;
       padding: 0;
-      min-height: 500px;
+      min-height: 400px;
     }
     
     .header {
@@ -111,117 +111,14 @@
       display: inline-block;
     }
     
-    .site-status.configured {
+    .site-status.ready {
       background: rgba(34, 197, 94, 0.2);
       color: #22c55e;
     }
     
-    .site-status.not-configured {
+    .site-status.coming-soon {
       background: rgba(234, 179, 8, 0.2);
       color: #eab308;
-    }
-    
-    /* Credentials form */
-    .credentials-section {
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      display: none;
-    }
-    
-    .credentials-section.active {
-      display: block;
-    }
-    
-    .credentials-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    
-    .credentials-title {
-      font-size: 14px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .close-btn {
-      background: none;
-      border: none;
-      color: #71717a;
-      cursor: pointer;
-      font-size: 18px;
-      padding: 4px;
-    }
-    
-    .close-btn:hover {
-      color: #e4e4e7;
-    }
-    
-    .form-group {
-      margin-bottom: 12px;
-    }
-    
-    .form-group label {
-      display: block;
-      font-size: 11px;
-      color: #a1a1aa;
-      margin-bottom: 6px;
-    }
-    
-    .form-group input {
-      width: 100%;
-      padding: 10px 12px;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #e4e4e7;
-      font-size: 13px;
-      transition: border-color 0.2s;
-    }
-    
-    .form-group input:focus {
-      outline: none;
-      border-color: #0ea5e9;
-    }
-    
-    .btn-row {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .btn {
-      flex: 1;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-    }
-    
-    .btn-secondary {
-      background: rgba(255,255,255,0.1);
-      color: #e4e4e7;
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255,255,255,0.15);
     }
     
     /* Status messages */
@@ -231,6 +128,7 @@
       font-size: 12px;
       margin-top: 12px;
       display: none;
+      text-align: center;
     }
     
     .status.success {
@@ -321,21 +219,6 @@
       background: rgba(239, 68, 68, 0.3);
     }
     
-    /* Loading spinner */
-    .loading {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: #0ea5e9;
-      animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
     /* Divider */
     .divider {
       height: 1px;
@@ -356,7 +239,7 @@
 <body>
   <div class="header">
     <h1>🔐 ScrapAI Auto-Login</h1>
-    <p>Connexion automatique à vos bases de données</p>
+    <p>Cliquez sur un site pour vous connecter</p>
   </div>
   
   <div class="content">
@@ -366,33 +249,7 @@
       <!-- Sites will be populated by JS -->
     </div>
     
-    <!-- Credentials form (shown when configuring a site) -->
-    <div class="credentials-section" id="credentialsSection">
-      <div class="credentials-header">
-        <span class="credentials-title">
-          <span id="configSiteIcon"></span>
-          <span id="configSiteName"></span>
-        </span>
-        <button class="close-btn" id="closeCredentials">&times;</button>
-      </div>
-      
-      <div class="form-group">
-        <label>Identifiant</label>
-        <input type="text" id="siteUsername" placeholder="Votre identifiant">
-      </div>
-      
-      <div class="form-group">
-        <label>Mot de passe</label>
-        <input type="password" id="sitePassword" placeholder="Votre mot de passe">
-      </div>
-      
-      <div class="btn-row">
-        <button class="btn btn-secondary" id="saveCredentials">Sauvegarder</button>
-        <button class="btn btn-primary" id="connectNow">Connexion →</button>
-      </div>
-      
-      <div class="status" id="status"></div>
-    </div>
+    <div class="status" id="status"></div>
     
     <div class="divider"></div>
     
@@ -405,7 +262,7 @@
   </div>
   
   <div class="footer">
-    ScrapAI Extension v1.0 - Les identifiants sont stockés localement
+    ScrapAI Extension v1.0
   </div>
   
   <script src="sites-config.js"></script>
