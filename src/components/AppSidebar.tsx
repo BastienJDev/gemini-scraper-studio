@@ -96,7 +96,7 @@ export function AppSidebar({
       <SidebarContent className="scrollbar-thin">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs text-muted-foreground px-4">
+          <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -106,7 +106,7 @@ export function AppSidebar({
               <NavLink 
                     to={item.url} 
                     end 
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/70"
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground"
                     activeClassName="bg-sidebar-primary/20 text-sidebar-primary font-medium"
                   >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -123,7 +123,7 @@ export function AppSidebar({
           <SidebarGroup className="mt-4">
             <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
               <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="text-xs text-muted-foreground px-4 flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors">
+                <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2 cursor-pointer hover:text-sidebar-foreground transition-colors">
                   <KeyRound className="h-3 w-3" />
                   Auto Login
                   <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", autoLoginOpen && "rotate-180")} />
@@ -140,11 +140,11 @@ export function AppSidebar({
                       >
                         <span>{site.icon}</span>
                         <span className="flex-1">{site.name}</span>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2 px-2">
+                  <p className="text-[10px] text-sidebar-foreground/50 mt-2 px-2">
                     Extension Chrome requise
                   </p>
                 </SidebarGroupContent>
@@ -156,11 +156,11 @@ export function AppSidebar({
         {/* Categories Filter */}
         {!collapsed && (
           <SidebarGroup className="mt-4">
-            <SidebarGroupLabel className="text-xs text-muted-foreground px-4 flex items-center gap-2">
+            <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2">
               <Filter className="h-3 w-3" />
               Catégories
               {selectedCategories.length > 0 && (
-                <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] bg-primary/20 text-primary">
+                <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] bg-sidebar-primary/20 text-sidebar-primary">
                   {selectedCategories.length}
                 </Badge>
               )}
@@ -186,7 +186,7 @@ export function AppSidebar({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs mt-3 text-muted-foreground hover:text-foreground"
+                  className="w-full text-xs mt-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                   onClick={onClearCategories}
                 >
                   Tout désélectionner
