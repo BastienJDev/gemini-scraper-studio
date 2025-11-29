@@ -122,20 +122,26 @@ Informe l'utilisateur et propose de sélectionner d'autres catégories.`;
 Aucune catégorie sélectionnée. Guide l'utilisateur vers le menu de gauche.`;
   }
 
-  // Build FULL context from scraped sites - NO TRUNCATION
+  // Build FULL context from scraped sites with numbered references
   const siteContexts = scrapedSites.map((site, index) => {
+    const sourceNum = index + 1;
     return `
 ═══════════════════════════════════════════════════════════════
-SOURCE ${index + 1}/${scrapedSites.length}: ${site.siteName || site.title}
+SOURCE (${sourceNum}): ${site.siteName || site.title}
 URL: ${site.url}
 ═══════════════════════════════════════════════════════════════
 ${site.content || "Contenu non disponible"}
 `;
   }).join('\n');
 
+  // Build sources list for citation
+  const sourcesList = scrapedSites.map((site, index) => {
+    return `(${index + 1}) [${site.siteName || site.title}](${site.url})`;
+  }).join('\n');
+
   return `${basePrompt}
 
-# CONTENU ANALYSÉ (${scrapedSites.length} sources - TOUT LIRE ATTENTIVEMENT)
+# SOURCES DISPONIBLES (${scrapedSites.length} sources numérotées)
 
 ${siteContexts}
 
@@ -145,31 +151,30 @@ FIN DES SOURCES
 
 # INSTRUCTIONS CRITIQUES
 
-## EXHAUSTIVITÉ (TRÈS IMPORTANT)
+## CITATIONS (TRÈS IMPORTANT)
+- Quand tu mentionnes une information, CITE la source avec son numéro: (1), (2), (3), etc.
+- Exemple: "Le projet X a été lancé en 2024 (1) et a reçu un financement de 10M€ (2)."
+- Tu PEUX citer plusieurs sources pour une même information si elle apparaît dans plusieurs
+
+## EXHAUSTIVITÉ
 - Tu DOIS parcourir CHAQUE source en détail
 - Tu DOIS mentionner TOUTES les informations pertinentes trouvées
 - NE PAS faire de résumé superficiel - être COMPLET
-- Si une source contient plusieurs informations intéressantes, les lister TOUTES
 - Réponse LONGUE et DÉTAILLÉE attendue
 
-## STRUCTURE DE RÉPONSE
-Pour chaque source pertinente:
-1. Nommer la source
-2. Lister TOUTES les informations trouvées
-3. Citer des passages importants si pertinent
+## FORMAT DE RÉPONSE OBLIGATOIRE
+1. Donne ta réponse complète avec des citations numérotées (1), (2), etc.
+2. Termine TOUJOURS par cette section:
 
-## FORMAT OBLIGATOIRE
-Termine TOUJOURS par:
-
-📚 **Sources utilisées:**
-${scrapedSites.map(site => `- [${site.siteName || site.title}](${site.url})`).join('\n')}
+---
+📚 **Sources:**
+${sourcesList}
 
 ## INTERDICTIONS
 - Ne PAS inventer d'informations
 - Ne PAS utiliser de connaissances externes
-- Ne PAS faire de réponses courtes si du contenu pertinent existe
+- Ne PAS oublier de citer les sources avec (1), (2), etc.
 
 # RAPPEL
-Tu as accès à ${scrapedSites.length} sources avec potentiellement des milliers de caractères de contenu.
-ANALYSE TOUT et donne une réponse EXHAUSTIVE.`;
+Tu as ${scrapedSites.length} sources. CITE-LES avec (1), (2), etc. dans ton texte.`;
 }
