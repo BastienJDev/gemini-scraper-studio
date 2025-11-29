@@ -1,10 +1,13 @@
-import { Zap, List, MessageSquare, Globe, Filter, Play, Settings } from "lucide-react";
+import { Zap, List, MessageSquare, Globe, Filter, Play, Settings, KeyRound, ExternalLink, ChevronDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +20,16 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+const AUTO_LOGIN_SITES = [
+  { id: "dalloz", name: "Dalloz", icon: "📚" },
+  { id: "lamyline", name: "Lamyline", icon: "⚖️" },
+  { id: "lexisnexis", name: "LexisNexis", icon: "📖" },
+  { id: "cairn", name: "Cairn", icon: "📰" },
+  { id: "generalis", name: "Généralis", icon: "📑" },
+  { id: "ledoctrinal", name: "Le Doctrinal", icon: "📜" },
+  { id: "droitdusport", name: "Droit du Sport", icon: "⚽" },
+];
 
 const CATEGORIES = [
   { id: "droit", label: "DROIT", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
@@ -49,6 +62,18 @@ export function AppSidebar({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const [autoLoginOpen, setAutoLoginOpen] = useState(false);
+
+  const triggerAutoLogin = (siteId: string, siteName: string) => {
+    const event = new CustomEvent("SCRAPAI_AUTO_LOGIN", {
+      detail: { siteId },
+    });
+    window.dispatchEvent(event);
+    
+    toast.info(`Lancement de la connexion à ${siteName}...`, {
+      description: "L'extension Chrome va ouvrir le site.",
+    });
+  };
 
   return (
     <Sidebar className="border-r border-border/30">
@@ -91,6 +116,41 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Auto Login */}
+        {!collapsed && (
+          <SidebarGroup className="mt-4">
+            <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
+              <CollapsibleTrigger className="w-full">
+                <SidebarGroupLabel className="text-xs text-muted-foreground px-4 flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors">
+                  <KeyRound className="h-3 w-3" />
+                  Auto Login
+                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", autoLoginOpen && "rotate-180")} />
+                </SidebarGroupLabel>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarGroupContent className="px-2 mt-2">
+                  <div className="space-y-1">
+                    {AUTO_LOGIN_SITES.map((site) => (
+                      <button
+                        key={site.id}
+                        onClick={() => triggerAutoLogin(site.id, site.name)}
+                        className="flex items-center gap-2 w-full text-left hover:bg-primary/10 rounded-md p-2 transition-colors text-sm group"
+                      >
+                        <span>{site.icon}</span>
+                        <span className="flex-1">{site.name}</span>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2 px-2">
+                    Extension Chrome requise
+                  </p>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </SidebarGroup>
+        )}
 
         {/* Categories Filter */}
         {!collapsed && (
