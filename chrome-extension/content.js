@@ -15,7 +15,7 @@
 function setupRecording() {
   console.log('[ScrapAI] Mode enregistrement activé');
   
-  // Show recording indicator
+  // Show recording indicator with stop button
   const indicator = document.createElement('div');
   indicator.id = 'scrapai-recording';
   indicator.innerHTML = `
@@ -33,7 +33,7 @@ function setupRecording() {
         z-index: 999999;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
       #scrapai-recording .dot {
@@ -43,15 +43,37 @@ function setupRecording() {
         border-radius: 50%;
         animation: pulse 1s infinite;
       }
+      #scrapai-recording .stop-btn {
+        background: white;
+        color: #ef4444;
+        border: none;
+        padding: 4px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+      }
+      #scrapai-recording .stop-btn:hover {
+        background: #fee2e2;
+      }
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
       }
     </style>
     <span class="dot"></span>
-    <span>Enregistrement... Connecte-toi normalement</span>
+    <span>Enregistrement...</span>
+    <button class="stop-btn" id="scrapai-stop-btn">Arrêter</button>
   `;
   document.body.appendChild(indicator);
+  
+  // Handle stop button click
+  document.getElementById('scrapai-stop-btn').addEventListener('click', () => {
+    chrome.storage.local.set({ isRecording: false }, () => {
+      indicator.remove();
+      showNotification('✓ Enregistrement arrêté');
+    });
+  });
 
   // Track form submissions
   document.addEventListener('submit', captureLogin, true);
