@@ -22,13 +22,48 @@ import {
 } from "@/components/ui/sidebar";
 
 const AUTO_LOGIN_SITES = [
-  { id: "dalloz", name: "Dalloz", icon: "📚" },
-  { id: "lamyline", name: "Lamyline", icon: "⚖️" },
-  { id: "lexisnexis", name: "LexisNexis", icon: "📖" },
-  { id: "cairn", name: "Cairn", icon: "📰" },
-  { id: "generalis", name: "Généralis", icon: "📑" },
-  { id: "ledoctrinal", name: "Le Doctrinal", icon: "📜" },
-  { id: "droitdusport", name: "Droit du Sport", icon: "⚽" },
+  { 
+    id: "dalloz", 
+    name: "Dalloz", 
+    icon: "📚",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "lamyline", 
+    name: "Lamyline", 
+    icon: "⚖️",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "lexisnexis", 
+    name: "LexisNexis", 
+    icon: "📖",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/search?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "cairn", 
+    name: "Cairn", 
+    icon: "📰",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "generalis", 
+    name: "Généralis", 
+    icon: "📑",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "ledoctrinal", 
+    name: "Le Doctrinal", 
+    icon: "📜",
+    startUrl: "https://catalogue-bu.u-bourgogne.fr/discovery/dbsearch?vid=33UB_INST:33UB_INST&lang=fr",
+  },
+  { 
+    id: "droitdusport", 
+    name: "Droit du Sport", 
+    icon: "⚽",
+    startUrl: "http://droitdusport.com/",
+  },
 ];
 
 const CATEGORIES = [
@@ -66,14 +101,27 @@ export function AppSidebar({
   const [autoLoginOpen, setAutoLoginOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
-  const triggerAutoLogin = (siteId: string, siteName: string) => {
+  const triggerAutoLogin = (site: (typeof AUTO_LOGIN_SITES)[number]) => {
+    const { id, name, startUrl } = site;
     const event = new CustomEvent("SCRAPAI_AUTO_LOGIN", {
-      detail: { siteId },
+      detail: { 
+        siteId: id, 
+        startUrl,
+        userOpened: Boolean(startUrl),
+      },
     });
     window.dispatchEvent(event);
+
+    if (startUrl) {
+      const newTab = window.open(startUrl, "_blank", "noopener,noreferrer");
+      if (!newTab) {
+        toast.error("Impossible d'ouvrir la nouvelle fenêtre, vérifie le bloqueur de pop-ups.");
+        return;
+      }
+    }
     
-    toast.info(`Lancement de la connexion à ${siteName}...`, {
-      description: "L'extension Chrome va ouvrir le site.",
+    toast.info(`Lancement de la connexion à ${name}...`, {
+      description: "Une nouvelle fenêtre s'ouvre et l'extension Chrome prend le relais.",
     });
   };
 
@@ -133,7 +181,7 @@ export function AppSidebar({
                     {AUTO_LOGIN_SITES.map((site) => (
                       <button
                         key={site.id}
-                        onClick={() => triggerAutoLogin(site.id, site.name)}
+                        onClick={() => triggerAutoLogin(site)}
                         className="flex items-center gap-2 w-full text-left hover:bg-sidebar-accent rounded-md p-2 transition-colors text-sm group text-sidebar-foreground/70 hover:text-sidebar-foreground"
                       >
                         <span>{site.icon}</span>

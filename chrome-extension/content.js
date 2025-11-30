@@ -2,7 +2,7 @@
 
 // Listen for custom events from web pages (for AutoLogin button integration)
 window.addEventListener('SCRAPAI_AUTO_LOGIN', async (event) => {
-  const { siteId } = event.detail || {};
+  const { siteId, startUrl, userOpened } = event.detail || {};
   console.log('[ScrapAI Content] Received AUTO_LOGIN event for:', siteId);
   
   if (!siteId) {
@@ -12,19 +12,14 @@ window.addEventListener('SCRAPAI_AUTO_LOGIN', async (event) => {
   
   // Load the sites config
   try {
-    const response = await fetch(chrome.runtime.getURL('sites-config.js'));
-    const text = await response.text();
-    
-    // Extract SITES_CONFIG from the file
-    const configMatch = text.match(/const SITES_CONFIG = (\{[\s\S]*?\});/);
-    if (!configMatch) {
-      console.error('[ScrapAI Content] Could not parse sites-config.js');
-      return;
+    const response = await fetch(chrome.runtime.getURL('sites-config.json'));
+    if (!response.ok) {
+      throw new Error(`Config HTTP ${response.status}`);
     }
-    
-    // Use Function to safely evaluate the config object
-    const SITES_CONFIG = eval('(' + configMatch[1] + ')');
+
+    const SITES_CONFIG = await response.json();
     const siteConfig = SITES_CONFIG[siteId];
+    const targetUrl = startUrl || siteConfig?.startUrl;
     
     if (!siteConfig) {
       console.error('[ScrapAI Content] Site not found:', siteId);
@@ -32,7 +27,7 @@ window.addEventListener('SCRAPAI_AUTO_LOGIN', async (event) => {
       return;
     }
     
-    if (!siteConfig.startUrl || siteConfig.actions.length === 0) {
+    if (!targetUrl || siteConfig.actions.length === 0) {
       showNotification(`Configuration incomplète pour ${siteConfig.name}`, true);
       return;
     }
@@ -47,8 +42,12 @@ window.addEventListener('SCRAPAI_AUTO_LOGIN', async (event) => {
     await chrome.storage.local.set({ pendingLogin: loginTask });
     showNotification(`Ouverture de ${siteConfig.name}...`, false);
     
-    // Open the site in a new tab
-    window.open(siteConfig.startUrl, '_blank');
+    // Open the site in a new tab (UI already opened it when userOpened is true)
+    if (!userOpened) {
+      window.open(targetUrl, '_blank');
+    } else {
+      console.log('[ScrapAI Content] Tab opened by UI, skipping window.open');
+    }
     
   } catch (error) {
     console.error('[ScrapAI Content] Error handling AUTO_LOGIN:', error);

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ScrapAI Auto-Login",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "Connexion automatique aux sites configurés",
   "permissions": [
     "storage",
@@ -28,7 +28,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["sites-config.js"],
+      "resources": ["sites-config.js", "sites-config.json"],
       "matches": ["<all_urls>"]
     }
   ],
