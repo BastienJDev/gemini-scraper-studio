@@ -101,7 +101,7 @@ const Index = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ url: site.url, deep: cfg.deep, maxPages: cfg.maxPages }),
+      body: JSON.stringify({ url: site.url, deep: cfg.deep, maxPages: cfg.maxPages, query: prompt }),
     });
     const data = await res.json();
     if (data.success) {

@@ -18,13 +18,20 @@ interface ScrapedPage {
   content: string;
 }
 
+interface Occurrence {
+  siteName: string;
+  pageTitle: string;
+  pageUrl: string;
+  snippet: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { url, deep = true, maxPages } = await req.json();
+    const { url, deep = true, maxPages, query } = await req.json();
     
     if (!url) {
       return new Response(
@@ -128,6 +135,46 @@ serve(async (req) => {
     const combinedContent = scrapedPages.map((p, i) => 
       `[PAGE ${i + 1}: ${p.url}]\n${p.content}`
     ).join('\n\n---\n\n');
+
+    // Build occurrences when query provided
+    const occurrences: Occurrence[] = [];
+    if (query && typeof query === "string" && query.trim().length > 0) {
+      const q = query.toLowerCase().trim();
+      scrapedPages.forEach((page) => {
+        const content = page.content || "";
+        const idx = content.toLowerCase().indexOf(q);
+        if (idx === -1) return;
+
+        // Extract a sentence/snippet around occurrence
+        const separators = /[\.?!]/g;
+        let start = 0;
+        let end = content.length;
+        let m;
+        while ((m = separators.exec(content)) !== null) {
+          if (m.index < idx) {
+            start = m.index + 1;
+          } else if (m.index > idx && end === content.length) {
+            end = m.index + 1;
+            break;
+          }
+        }
+        const rawSnippet = content.substring(Math.max(0, start - 20), Math.min(content.length, end + 20));
+        const cleaned = rawSnippet
+          .replace(/#+/g, "")
+          .replace(/\s+/g, " ")
+          .replace(/\s([,.!?;:])/g, "$1")
+          .trim();
+        const maxLen = 240;
+        const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
+
+        occurrences.push({
+          siteName: siteTitle || page.title || baseUrl.hostname,
+          pageTitle: page.title || page.url,
+          pageUrl: page.url,
+          snippet,
+        });
+      });
+    }
     
     console.log('Total scraped:', scrapedPages.length, 'pages');
 
@@ -140,6 +187,7 @@ serve(async (req) => {
         pages: scrapedPages, // NEW: Individual pages with URLs
         pagesScraped: scrapedPages.length,
         maxPagesUsed: maxPagesToScrape,
+        occurrences,
         url
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
