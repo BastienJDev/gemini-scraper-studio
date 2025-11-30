@@ -141,7 +141,7 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="border-r-0 bg-gradient-to-b from-[#d3ebff] via-[#9fccff] to-[#6da9ff] text-white shadow-[8px_0_24px_rgba(0,0,0,0.28)]">
+    <Sidebar className="border-r-0 bg-gradient-to-b from-[#eaf5ff] via-[#c5e1ff] to-[#9fc8ff] text-white shadow-[8px_0_24px_rgba(0,0,0,0.24)]">
       {/* Header */}
       <SidebarHeader className="p-5 border-b border-white/15">
         <div className="flex items-center gap-3">
@@ -190,19 +190,17 @@ export function AppSidebar({
               {/* Sites juridiques dropdown with Auto Login */}
               <SidebarMenuItem>
                 <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
-                  <CollapsibleTrigger asChild>
-                    <NavLink
-                      to="/playwright"
-                      end
+                  <CollapsibleTrigger className="w-full">
+                    <button
                       className={cn(
-                        "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/90 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/15 hover:translate-x-1",
-                        location.pathname === "/playwright" && "text-white bg-white/15 shadow-[0_10px_30px_rgba(79,151,247,0.35)]",
+                        "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/90 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/15 hover:translate-x-1 w-full",
+                        autoLoginOpen && "text-white bg-white/15 shadow-[0_10px_30px_rgba(79,151,247,0.35)]",
                       )}
                     >
                       <span
                         className={cn(
                           "absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full bg-gradient-to-b from-[#b8e1ff] to-[#7cb4ff] opacity-0 transition-all duration-300 group-hover:opacity-90 group-hover:w-1.5",
-                          location.pathname === "/playwright" && "opacity-100 w-1.5",
+                          autoLoginOpen && "opacity-100 w-1.5",
                         )}
                       />
                       <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-white/80 transition-all duration-300 group-hover:scale-110 drop-shadow-sm" />
@@ -210,7 +208,7 @@ export function AppSidebar({
                       {!collapsed && (
                         <ChevronDown className={cn("h-3 w-3 transition-transform", autoLoginOpen && "rotate-180")} />
                       )}
-                    </NavLink>
+                    </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="mt-2 space-y-1 px-3 pb-2">
