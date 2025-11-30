@@ -12,12 +12,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card } from "@/components/ui/card";
 import { Search, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import sitesData from "@/data/sites.json";
 
 const Index = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
   const [depth, setDepth] = useState<1 | 2 | 3>(1);
   const [geminiEnabled, setGeminiEnabled] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [resultText, setResultText] = useState("");
 
   const toggleCategory = (categoryId: string) => {
     if (selectedCategories.includes(categoryId)) {
@@ -49,6 +53,192 @@ const Index = () => {
     { id: "sport", label: "Sport" },
     { id: "syndicat", label: "Syndicat" },
   ];
+
+  const SCRAPE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape`;
+  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+  const depthConfig = {
+    1: { deep: false, maxPages: 1 },
+    2: { deep: true, maxPages: 4 },
+    3: { deep: true, maxPages: 12 },
+  } as const;
+
+  const cleanUrl = (url: string): string => url.split(" ")[0].split("(")[0].trim();
+
+  const isValidUrl = (url: string): boolean => {
+    if (!url || typeof url !== "string") return false;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname.includes(".");
+    } catch {
+      return false;
+    }
+  };
+
+  const getSitesForCategories = (): Array<{ name: string; url: string; category: string }> => {
+    if (selectedCategories.length === 0) return [];
+    const normalized = selectedCategories.map((c) => c.toLowerCase().trim());
+    return sitesData
+      .filter((site) => {
+        const cat = site.CATEGORIES?.toLowerCase().trim();
+        return normalized.some((c) => cat?.includes(c));
+      })
+      .map((site) => ({
+        name: site.NAME,
+        url: cleanUrl(site.URL),
+        category: site.CATEGORIES,
+      }))
+      .filter((site) => isValidUrl(site.url));
+  };
+
+  const scrapeSite = async (site: { name: string; url: string }, level: 1 | 2 | 3) => {
+    const cfg = depthConfig[level];
+    const res = await fetch(SCRAPE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ url: site.url, deep: cfg.deep, maxPages: cfg.maxPages }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      return {
+        url: site.url,
+        title: data.title || site.name,
+        content: data.content || "",
+        siteName: site.name,
+        pages: data.pages || [],
+      };
+    }
+    return null;
+  };
+
+  const buildOccurrences = (sites: any[], query: string) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return "";
+    const lines: string[] = [];
+    sites.forEach((s, idx) => {
+      const pages = s.pages && s.pages.length > 0 ? s.pages : [{ url: s.url, title: s.title, content: s.content }];
+      pages.forEach((p: any) => {
+        if (!p.content) return;
+        const contentLower = p.content.toLowerCase();
+        const foundIndex = contentLower.indexOf(q);
+        if (foundIndex !== -1) {
+          const start = Math.max(0, foundIndex - 60);
+          const end = Math.min(p.content.length, foundIndex + q.length + 60);
+          const snippet = p.content.substring(start, end).replace(/\s+/g, " ").trim();
+          lines.push(
+            `- [${p.title || p.url}](${p.url}) — ...${snippet}...`
+          );
+        }
+      });
+    });
+    return lines.join("\n");
+  };
+
+  const handleSearch = async () => {
+    if (isSearching) return;
+    if (!prompt.trim()) {
+      toast.error("Ajoute un prompt pour cibler le scraping.");
+      return;
+    }
+    const sites = getSitesForCategories();
+    if (sites.length === 0) {
+      toast.error("Sélectionnez au moins une catégorie.");
+      return;
+    }
+
+    setIsSearching(true);
+    setResultText("");
+    toast.info("Scraping en cours...");
+
+    const scrapedSites: any[] = [];
+    for (const site of sites.slice(0, 8)) {
+      try {
+        const res = await scrapeSite(site, depth);
+        if (res) scrapedSites.push(res);
+      } catch {
+        // ignore single failure
+      }
+    }
+
+    if (scrapedSites.length === 0) {
+      toast.error("Aucun site n'a pu être scrappé");
+      setIsSearching(false);
+      return;
+    }
+
+    if (!geminiEnabled) {
+      const plain = buildOccurrences(scrapedSites, prompt);
+      setResultText(
+        plain
+          ? `Occurences trouvées pour "${prompt}":\n\n${plain}`
+          : `Aucune occurrence trouvée pour "${prompt}".`
+      );
+      toast.success(`${scrapedSites.length} site(s) scrappé(s)`);
+      setIsSearching(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt || "Analyse les sites fournis" }],
+          scrapedSites,
+          categories: selectedCategories,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("Réponse invalide");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let assistantContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+            }
+          } catch {
+            // ignore partial
+          }
+        }
+      }
+
+      setResultText(assistantContent || "Aucune réponse générée.");
+      toast.success("Analyse Gemini terminée");
+    } catch (error) {
+      console.error("Chat error", error);
+      toast.error("Erreur pendant l'analyse Gemini");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -150,18 +340,24 @@ const Index = () => {
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-foreground">Reformuler via Gemini</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={geminiEnabled} onCheckedChange={setGeminiEnabled} />
-                </div>
+                <span className="text-sm text-foreground">Reformuler via Gemini</span>
+                <Switch checked={geminiEnabled} onCheckedChange={setGeminiEnabled} />
               </div>
 
-              <Button className="w-full bg-[#1f67d2] hover:bg-[#1651a5] text-white text-base py-5 rounded-2xl mt-2">
-                Rechercher
+              <Button
+                className="w-full bg-[#1f67d2] hover:bg-[#1651a5] text-white text-base py-5 rounded-2xl mt-2"
+                onClick={handleSearch}
+                disabled={isSearching}
+              >
+                {isSearching ? "Recherche..." : "Rechercher"}
               </Button>
             </Card>
+
+            {resultText && (
+              <Card className="bg-white/90 border-[#d8e2f3] shadow rounded-2xl p-4 text-left whitespace-pre-wrap">
+                {resultText}
+              </Card>
+            )}
 
             <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
               <span>À propos</span>
