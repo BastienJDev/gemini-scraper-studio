@@ -88,25 +88,17 @@ const Index = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-64">
                       {depthOptions.map((opt) => (
-                        <Button
+                        <DropdownMenuCheckboxItem
                           key={opt.id}
-                          variant="ghost"
-                          className={`w-full justify-start text-left px-3 py-3 rounded-xl border ${
-                            depth === opt.id
-                              ? "bg-[#1f67d2] text-white border-[#1f67d2]"
-                              : "bg-white text-foreground border-[#d8e2f3]"
+                          checked={depth === opt.id}
+                          onCheckedChange={() => setDepth(opt.id)}
+                          className={`flex flex-col items-start py-3 px-3 rounded-lg ${
+                            depth === opt.id ? "bg-[#e8f0ff] text-[#1f67d2]" : ""
                           }`}
-                          onClick={() => setDepth(opt.id)}
                         >
                           <div className="text-base font-semibold">{opt.label}</div>
-                          <div
-                            className={`text-sm ${
-                              depth === opt.id ? "text-white/90" : "text-muted-foreground"
-                            }`}
-                          >
-                            {opt.description}
-                          </div>
-                        </Button>
+                          <div className="text-sm text-muted-foreground">{opt.description}</div>
+                        </DropdownMenuCheckboxItem>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -165,6 +157,10 @@ const Index = () => {
                   Profondeur: {depthOptions.find((o) => o.id === depth)?.label}
                 </div>
               </div>
+
+              <Button className="w-full bg-[#1f67d2] hover:bg-[#1651a5] text-white text-base py-5 rounded-2xl mt-2">
+                Rechercher
+              </Button>
             </Card>
 
             <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
