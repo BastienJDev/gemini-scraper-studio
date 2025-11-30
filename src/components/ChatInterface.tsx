@@ -231,11 +231,21 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    const promptText = input.trim();
+    if (isLoading) return;
+    if (!promptText && useGeminiSummary) {
+      toast.error("Ajoute un prompt ou décoche le résumé Gemini");
+      return;
+    }
+    if (!promptText && !useGeminiSummary && selectedCategories.length === 0) {
+      toast.error("Sélectionne au moins une catégorie");
+      return;
+    }
 
-    const userMessage: Message = { role: "user", content: input.trim() };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    const userMessage: Message = { role: "user", content: promptText || "Analyse des sites sélectionnés" };
+    if (promptText) {
+      setMessages((prev) => [...prev, userMessage]);
+    }
     setIsLoading(true);
     setRefinementSuggestions([]);
 
@@ -263,6 +273,31 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
         }
       } else {
         console.log("[ChatInterface] No categories selected, no scraping");
+      }
+
+      // Mode liste simple (pas de Gemini)
+      if (!useGeminiSummary) {
+        if (scrapedSites.length === 0) {
+          toast.info("Aucun site analysé");
+          return;
+        }
+
+        const depthLabel = DEPTH_CONFIG[depthLevel]?.label || "Base";
+        assistantContent = `Sites analysés (${depthLabel})\n\n`;
+        scrapedSites.forEach((site, idx) => {
+          assistantContent += `- ${idx + 1}. ${site.siteName || site.title || site.url}\n  ${site.url}\n`;
+          if (site.pages && site.pages.length > 0) {
+            site.pages.slice(0, 10).forEach((page, pIdx) => {
+              assistantContent += `    • ${pIdx + 1}. ${page.title || page.url} — ${page.url}\n`;
+            });
+          }
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: assistantContent },
+        ]);
+        return;
       }
 
       console.log("[ChatInterface] Sending to chat API:", {
@@ -358,7 +393,16 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   };
 
   const rephrasePrompt = async () => {
-    if (!input.trim() || isLoading || isRephrasing) return;
+    if (isLoading || isRephrasing) return;
+    const baseText =
+      input.trim() ||
+      [...messages].reverse().find((m) => m.role === "user")?.content?.trim() ||
+      "";
+
+    if (!baseText) {
+      toast.error("Ajoute un prompt à reformuler");
+      return;
+    }
     setIsRephrasing(true);
     try {
       const response = await fetch(CHAT_URL, {
@@ -369,7 +413,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
         },
         body: JSON.stringify({
           mode: "rephrase",
-          messages: [{ role: "user", content: input.trim() }],
+          messages: [{ role: "user", content: baseText }],
           scrapedSites: [],
           categories: selectedCategories,
         }),
@@ -476,16 +520,32 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
                 </Button>
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!input.trim() || isLoading || isRephrasing}
-              onClick={rephrasePrompt}
-              className="gap-2"
-            >
-              {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Reformuler via Gemini
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="useGeminiSummary"
+                  checked={useGeminiSummary}
+                  onCheckedChange={(val) => setUseGeminiSummary(Boolean(val))}
+                  className="h-4 w-4"
+                />
+                <label
+                  htmlFor="useGeminiSummary"
+                  className="text-xs text-muted-foreground cursor-pointer select-none"
+                >
+                  Résumé avec Gemini
+                </label>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isLoading || isRephrasing}
+                onClick={rephrasePrompt}
+                className="gap-2"
+              >
+                {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Reformuler via Gemini
+              </Button>
+            </div>
           </div>
         )}
 
@@ -531,7 +591,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
           <div className="flex flex-col gap-2 items-center">
             <Button
               onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading}
               size="icon"
               className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
             >
