@@ -140,7 +140,7 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="border-r-0 bg-gradient-to-b from-[#1c2c5a] via-[#18264f] to-[#101b3a] text-white shadow-[8px_0_24px_rgba(0,0,0,0.35)]">
+    <Sidebar className="border-r-0 bg-gradient-to-b from-[#7dc5ff] via-[#4f97f7] to-[#2d5dd7] text-white shadow-[8px_0_24px_rgba(0,0,0,0.28)]">
       {/* Header */}
       <SidebarHeader className="p-5 border-b border-white/15">
         <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export function AppSidebar({
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <p className="text-xs uppercase text-white/70 tracking-[0.08em]">Ton Cabinet</p>
+              <p className="text-xs uppercase text-white/75 tracking-[0.08em]">Ton Cabinet</p>
               <h1 className="text-lg font-semibold text-white drop-shadow-sm">Enzo P.</h1>
             </div>
           )}
@@ -159,7 +159,7 @@ export function AppSidebar({
       <SidebarContent className="scrollbar-thin px-1">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-slate-400 px-4 mt-4">
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-white/80 px-4 mt-4">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -170,13 +170,13 @@ export function AppSidebar({
                     to={item.url} 
                     end 
                     className={cn(
-                      "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/85 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/10 hover:translate-x-1",
-                      location.pathname === item.url && "text-white bg-white/10 shadow-[0_10px_30px_rgba(104,99,246,0.25)]",
+                      "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/90 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/15 hover:translate-x-1",
+                      location.pathname === item.url && "text-white bg-white/15 shadow-[0_10px_30px_rgba(79,151,247,0.35)]",
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full bg-gradient-to-b from-[#9ea7ff] to-[#7087ff] opacity-0 transition-all duration-300 group-hover:opacity-80 group-hover:w-1.5",
+                        "absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full bg-gradient-to-b from-[#b8e1ff] to-[#7cb4ff] opacity-0 transition-all duration-300 group-hover:opacity-90 group-hover:w-1.5",
                         location.pathname === item.url && "opacity-100 w-1.5",
                       )}
                     />
