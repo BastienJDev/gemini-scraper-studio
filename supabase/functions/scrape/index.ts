@@ -40,7 +40,9 @@ serve(async (req) => {
       );
     }
 
-    const maxPagesToScrape = Math.min(Math.max(typeof maxPages === 'number' ? maxPages : parseInt(maxPages) || 0, 1), 20);
+    // If maxPages not provided, aim for 20 to cover "scrape au max"
+    const providedMax = typeof maxPages === 'number' ? maxPages : parseInt(maxPages);
+    const maxPagesToScrape = Math.min(Math.max(providedMax || 20, 1), 20);
     const shouldDeepScrape = deep && maxPagesToScrape > 1;
 
     console.log('Scraping URL:', url, 'Deep:', shouldDeepScrape, 'Max pages:', maxPagesToScrape);
@@ -89,17 +91,21 @@ serve(async (req) => {
         .filter(link => {
           try {
             const linkUrl = new URL(link, url);
+            const href = linkUrl.href;
             // Same domain, not visited, and looks like content (not assets)
             return linkUrl.hostname === baseUrl.hostname && 
-                   !visitedUrls.has(linkUrl.href) &&
-                   !link.match(/\.(css|js|png|jpg|jpeg|gif|svg|pdf|doc|ico)$/i) &&
-                   !link.includes('login') &&
-                   !link.includes('contact');
+                   !visitedUrls.has(href) &&
+                   !href.match(/\.(css|js|png|jpg|jpeg|gif|svg|pdf|doc|ico)$/i) &&
+                   !href.includes('login') &&
+                   !href.includes('contact') &&
+                   !href.includes('mailto:') &&
+                   !href.includes('tel:') &&
+                   href.length < 200;
           } catch {
             return false;
           }
         })
-        .slice(0, 8);
+        .slice(0, 12);
 
       // Combine and deduplicate URLs
       const urlsToScrape = [...new Set([...priorityUrls, ...internalLinks])].slice(0, Math.max(0, maxPagesToScrape - 1));
@@ -142,37 +148,43 @@ serve(async (req) => {
       const q = query.toLowerCase().trim();
       scrapedPages.forEach((page) => {
         const content = page.content || "";
-        const idx = content.toLowerCase().indexOf(q);
-        if (idx === -1) return;
+        const contentLower = content.toLowerCase();
+        let startIdx = 0;
+        while (true) {
+          const idx = contentLower.indexOf(q, startIdx);
+          if (idx === -1) break;
 
-        // Extract a sentence/snippet around occurrence
-        const separators = /[\.?!]/g;
-        let start = 0;
-        let end = content.length;
-        let m;
-        while ((m = separators.exec(content)) !== null) {
-          if (m.index < idx) {
-            start = m.index + 1;
-          } else if (m.index > idx && end === content.length) {
-            end = m.index + 1;
-            break;
+          // Extract a sentence/snippet around occurrence
+          const separators = /[\.?!]/g;
+          let start = 0;
+          let end = content.length;
+          let m;
+          while ((m = separators.exec(content)) !== null) {
+            if (m.index < idx) {
+              start = m.index + 1;
+            } else if (m.index > idx && end === content.length) {
+              end = m.index + 1;
+              break;
+            }
           }
-        }
-        const rawSnippet = content.substring(Math.max(0, start - 20), Math.min(content.length, end + 20));
-        const cleaned = rawSnippet
-          .replace(/#+/g, "")
-          .replace(/\s+/g, " ")
-          .replace(/\s([,.!?;:])/g, "$1")
-          .trim();
-        const maxLen = 240;
-        const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
+          const rawSnippet = content.substring(Math.max(0, start - 20), Math.min(content.length, end + 20));
+          const cleaned = rawSnippet
+            .replace(/#+/g, "")
+            .replace(/\s+/g, " ")
+            .replace(/\s([,.!?;:])/g, "$1")
+            .trim();
+          const maxLen = 240;
+          const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
 
-        occurrences.push({
-          siteName: siteTitle || page.title || baseUrl.hostname,
-          pageTitle: page.title || page.url,
-          pageUrl: page.url,
-          snippet,
-        });
+          occurrences.push({
+            siteName: page.title || siteTitle || baseUrl.hostname,
+            pageTitle: page.title || page.url,
+            pageUrl: page.url,
+            snippet,
+          });
+
+          startIdx = idx + q.length;
+        }
       });
     }
     
