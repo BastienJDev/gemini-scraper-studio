@@ -119,8 +119,9 @@ const Index = () => {
     const q = query.trim().toLowerCase();
     if (!q) return "";
     const lines: string[] = [];
-    sites.forEach((s, idx) => {
+    sites.forEach((s) => {
       const pages = s.pages && s.pages.length > 0 ? s.pages : [{ url: s.url, title: s.title, content: s.content }];
+      const siteLines: string[] = [];
       pages.forEach((p: any) => {
         if (!p.content) return;
         const contentLower = p.content.toLowerCase();
@@ -129,13 +130,14 @@ const Index = () => {
           const start = Math.max(0, foundIndex - 60);
           const end = Math.min(p.content.length, foundIndex + q.length + 60);
           const snippet = p.content.substring(start, end).replace(/\s+/g, " ").trim();
-          lines.push(
-            `- [${p.title || p.url}](${p.url}) — ...${snippet}...`
-          );
+          siteLines.push(`[${p.title || p.url}](${p.url}) — ...${snippet}...`);
         }
       });
+      if (siteLines.length > 0) {
+        lines.push(`${s.siteName || s.title || s.url} :\n${siteLines.map((l) => `- ${l}`).join("\n")}`);
+      }
     });
-    return lines.join("\n");
+    return lines.join("\n\n");
   };
 
   const handleSearch = async () => {
