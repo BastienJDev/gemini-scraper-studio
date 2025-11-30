@@ -1,4 +1,17 @@
-import { Zap, List, MessageSquare, Filter, KeyRound, ExternalLink, ChevronDown, Briefcase, Newspaper, FileText } from "lucide-react";
+import { 
+  Zap, 
+  List, 
+  Filter, 
+  KeyRound, 
+  ExternalLink, 
+  ChevronDown, 
+  Briefcase, 
+  Newspaper, 
+  FileText,
+  LayoutDashboard,
+  CheckCircle2,
+  BookOpenText,
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -77,11 +90,12 @@ const CATEGORIES = [
 ];
 
 const navItems = [
-  { title: "Chat", url: "/", icon: MessageSquare },
-  { title: "Ma Liste", url: "/sites", icon: List },
-  { title: "Offres d'emploi", url: "/emploi", icon: Briefcase },
+  { title: "Accueil", url: "/", icon: LayoutDashboard },
   { title: "Actualités", url: "/actualites", icon: Newspaper },
-  { title: "Bibliothèque PDF", url: "/bibliotheque", icon: FileText },
+  { title: "Offres d'emploi", url: "/emploi", icon: Briefcase },
+  { title: "Sites juridiques", url: "/playwright", icon: CheckCircle2 },
+  { title: "Gestion des sites", url: "/sites", icon: List },
+  { title: "PDF", url: "/bibliotheque", icon: BookOpenText },
 ];
 
 interface AppSidebarProps {
@@ -126,23 +140,26 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar">
+    <Sidebar className="border-r-0 bg-gradient-to-b from-[#1c2c5a] via-[#18264f] to-[#101b3a] text-white shadow-[8px_0_24px_rgba(0,0,0,0.35)]">
       {/* Header */}
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className="p-5 border-b border-white/15">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center glow-primary-sm flex-shrink-0">
-            <Zap className="h-4 w-4 text-sidebar-primary-foreground" />
+          <div className="w-11 h-11 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center shadow-[0_8px_18px_rgba(0,0,0,0.3)] backdrop-blur-sm animate-[pulse_6s_ease-in-out_infinite]">
+            <Zap className="h-5 w-5 text-white drop-shadow" />
           </div>
           {!collapsed && (
-            <h1 className="text-base font-semibold text-sidebar-foreground">Enzo P.</h1>
+            <div className="leading-tight">
+              <p className="text-xs uppercase text-white/70 tracking-[0.08em]">Ton Cabinet</p>
+              <h1 className="text-lg font-semibold text-white drop-shadow-sm">Enzo P.</h1>
+            </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="scrollbar-thin">
+      <SidebarContent className="scrollbar-thin px-1">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4">
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-slate-400 px-4 mt-4">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -152,10 +169,18 @@ export function AppSidebar({
               <NavLink 
                     to={item.url} 
                     end 
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                    activeClassName="bg-sidebar-primary/20 text-sidebar-primary font-medium"
+                    className={cn(
+                      "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/85 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/10 hover:translate-x-1",
+                      location.pathname === item.url && "text-white bg-white/10 shadow-[0_10px_30px_rgba(104,99,246,0.25)]",
+                    )}
                   >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
+                    <span
+                      className={cn(
+                        "absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full bg-gradient-to-b from-[#9ea7ff] to-[#7087ff] opacity-0 transition-all duration-300 group-hover:opacity-80 group-hover:w-1.5",
+                        location.pathname === item.url && "opacity-100 w-1.5",
+                      )}
+                    />
+                    <item.icon className="h-4 w-4 flex-shrink-0 text-white/80 transition-all duration-300 group-hover:scale-110 drop-shadow-sm" />
                     {!collapsed && <span className="text-sm">{item.title}</span>}
                   </NavLink>
                 </SidebarMenuItem>
@@ -166,10 +191,10 @@ export function AppSidebar({
 
         {/* Auto Login */}
         {!collapsed && (
-          <SidebarGroup className="mt-4">
+          <SidebarGroup className="mt-6">
             <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
               <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2 cursor-pointer hover:text-sidebar-foreground transition-colors">
+                <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-white/70 px-4 flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
                   <KeyRound className="h-3 w-3" />
                   Auto Login
                   <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", autoLoginOpen && "rotate-180")} />
@@ -182,15 +207,15 @@ export function AppSidebar({
                       <button
                         key={site.id}
                         onClick={() => triggerAutoLogin(site)}
-                        className="flex items-center gap-2 w-full text-left hover:bg-sidebar-accent rounded-md p-2 transition-colors text-sm group text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                        className="flex items-center gap-2 w-full text-left rounded-md p-2 transition-all duration-300 text-sm group text-white/80 hover:text-white hover:bg-white/10 hover:translate-x-1"
                       >
-                        <span>{site.icon}</span>
+                        <span className="text-lg">{site.icon}</span>
                         <span className="flex-1">{site.name}</span>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity duration-200" />
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-sidebar-foreground/50 mt-2 px-2">
+                  <p className="text-[10px] text-white/70 mt-2 px-2">
                     Extension Chrome requise
                   </p>
                 </SidebarGroupContent>
@@ -201,14 +226,14 @@ export function AppSidebar({
 
         {/* Categories Filter */}
         {!collapsed && (
-          <SidebarGroup className="mt-4">
+          <SidebarGroup className="mt-6">
             <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
               <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="text-xs text-sidebar-foreground/60 px-4 flex items-center gap-2 cursor-pointer hover:text-sidebar-foreground transition-colors">
+                <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-white/70 px-4 flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
                   <Filter className="h-3 w-3" />
                   Catégories
                   {selectedCategories.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto mr-2 h-5 px-1.5 text-[10px] bg-sidebar-primary/20 text-sidebar-primary">
+                    <Badge variant="secondary" className="ml-auto mr-2 h-5 px-1.5 text-[10px] bg-white/10 text-white border border-white/20 shadow-[0_6px_20px_rgba(0,0,0,0.25)]">
                       {selectedCategories.length}
                     </Badge>
                   )}
@@ -221,7 +246,7 @@ export function AppSidebar({
                     {CATEGORIES.map((category) => (
                       <label
                         key={category.id}
-                        className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent rounded-md p-2 transition-colors"
+                        className="flex items-center gap-2 cursor-pointer rounded-md p-2 transition-all duration-300 hover:bg-white/10 hover:translate-x-1"
                       >
                         <Checkbox
                           checked={selectedCategories.includes(category.id)}
@@ -237,7 +262,7 @@ export function AppSidebar({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full text-xs mt-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                      className="w-full text-xs mt-3 text-white/80 hover:text-white hover:bg-white/10"
                       onClick={onClearCategories}
                     >
                       Tout désélectionner
