@@ -412,60 +412,84 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
         {/* Category filter above prompt */}
         {onCategoryToggle && (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2 items-center">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              {CATEGORIES.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant="outline"
-                  className={cn(
-                    "cursor-pointer transition-all text-xs",
-                    selectedCategories.includes(category.id)
-                      ? category.color + " ring-1 ring-offset-1"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    {selectedCategories.length > 0
+                      ? `${selectedCategories.length} catégorie${selectedCategories.length > 1 ? "s" : ""}`
+                      : "Catégories"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {CATEGORIES.map((category) => (
+                    <DropdownMenuItem
+                      key={category.id}
+                      className="flex items-center gap-2"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        onCategoryToggle(category.id);
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedCategories.includes(category.id)}
+                        onCheckedChange={() => onCategoryToggle(category.id)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{category.label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  {selectedCategories.length > 0 && onClearCategories && (
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        onClearCategories();
+                      }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Tout effacer
+                    </DropdownMenuItem>
                   )}
-                  onClick={() => onCategoryToggle(category.id)}
-                >
-                  {category.label}
-                </Badge>
-              ))}
-              {selectedCategories.length > 0 && onClearCategories && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
-                  onClick={onClearCategories}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Tout effacer
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="useGeminiSummary"
-                  checked={useGeminiSummary}
-                  onCheckedChange={(val) => setUseGeminiSummary(Boolean(val))}
-                  className="h-4 w-4"
-                />
-                <label
-                  htmlFor="useGeminiSummary"
-                  className="text-xs text-muted-foreground cursor-pointer select-none"
-                >
-                  Résumé avec Gemini
-                </label>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <div className="flex flex-wrap gap-2">
+                {selectedCategories.slice(0, 5).map((cat) => {
+                  const meta = CATEGORIES.find((c) => c.id === cat);
+                  return (
+                    <Badge
+                      key={cat}
+                      variant="outline"
+                      className={cn(
+                        "text-xs cursor-pointer",
+                        meta ? meta.color : ""
+                      )}
+                      onClick={() => onCategoryToggle(cat)}
+                    >
+                      {meta?.label || cat}
+                    </Badge>
+                  );
+                })}
+                {selectedCategories.length > 5 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{selectedCategories.length - 5}
+                  </Badge>
+                )}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isLoading || isRephrasing}
-                onClick={rephrasePrompt}
-                className="gap-2"
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="useGeminiSummary"
+                checked={useGeminiSummary}
+                onCheckedChange={(val) => setUseGeminiSummary(Boolean(val))}
+                className="h-4 w-4"
+              />
+              <label
+                htmlFor="useGeminiSummary"
+                className="text-xs text-muted-foreground cursor-pointer select-none"
               >
-                {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Reformuler via Gemini
-              </Button>
+                Résumé avec Gemini
+              </label>
             </div>
           </div>
         )}
