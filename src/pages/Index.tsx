@@ -126,12 +126,27 @@ const Index = () => {
         if (!p.content) return;
         const contentLower = p.content.toLowerCase();
         const foundIndex = contentLower.indexOf(q);
-        if (foundIndex !== -1) {
-          const start = Math.max(0, foundIndex - 60);
-          const end = Math.min(p.content.length, foundIndex + q.length + 60);
-          const snippet = p.content.substring(start, end).replace(/\s+/g, " ").trim();
-          siteLines.push(`[${p.title || p.url}](${p.url}) — ...${snippet}...`);
+        if (foundIndex === -1) return;
+
+        // Extraire la phrase autour de l'occurrence (délimiteurs basiques)
+        const separators = /[\\.\\?!]/g;
+        let sentenceStart = 0;
+        let sentenceEnd = p.content.length;
+        let match;
+        while ((match = separators.exec(p.content)) !== null) {
+          if (match.index < foundIndex) {
+            sentenceStart = match.index + 1;
+          } else if (match.index > foundIndex && sentenceEnd === p.content.length) {
+            sentenceEnd = match.index + 1;
+            break;
+          }
         }
+        const sentence = p.content
+          .substring(Math.max(0, sentenceStart - 10), Math.min(p.content.length, sentenceEnd + 10))
+          .replace(/\\s+/g, " ")
+          .trim();
+
+        siteLines.push(`[${p.title || p.url}](${p.url}) — ${sentence}`);
       });
       if (siteLines.length > 0) {
         lines.push(`${s.siteName || s.title || s.url} :\n${siteLines.map((l) => `- ${l}`).join("\n")}`);
