@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -72,36 +71,44 @@ const Index = () => {
                   placeholder="Faites votre prompt..."
                   className="border-0 shadow-none focus-visible:ring-0 text-base"
                 />
-                <div className="flex items-center gap-2 text-sm font-medium text-[#1f67d2]">
-                  ON
-                  <Switch checked={geminiEnabled} onCheckedChange={setGeminiEnabled} />
-                </div>
               </div>
             </div>
 
             <Card className="bg-white/90 border-[#d8e2f3] shadow-lg rounded-3xl p-6 space-y-5 text-left">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <p className="text-lg font-medium text-foreground">Profondeur d’analyse</p>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="space-y-3">
-                  {depthOptions.map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => setDepth(opt.id)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border transition ${
-                        depth === opt.id
-                          ? "bg-[#1f67d2] text-white border-[#1f67d2]"
-                          : "bg-white text-foreground border-[#d8e2f3] hover:border-[#1f67d2]"
-                      }`}
-                    >
-                      <div className="text-base font-semibold">{opt.label}</div>
-                      <div className={`text-sm ${depth === opt.id ? "text-white/90" : "text-muted-foreground"}`}>
-                        {opt.description}
-                      </div>
-                    </button>
-                  ))}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        {depthOptions.find((d) => d.id === depth)?.label || "Choisir"}
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64">
+                      {depthOptions.map((opt) => (
+                        <Button
+                          key={opt.id}
+                          variant="ghost"
+                          className={`w-full justify-start text-left px-3 py-3 rounded-xl border ${
+                            depth === opt.id
+                              ? "bg-[#1f67d2] text-white border-[#1f67d2]"
+                              : "bg-white text-foreground border-[#d8e2f3]"
+                          }`}
+                          onClick={() => setDepth(opt.id)}
+                        >
+                          <div className="text-base font-semibold">{opt.label}</div>
+                          <div
+                            className={`text-sm ${
+                              depth === opt.id ? "text-white/90" : "text-muted-foreground"
+                            }`}
+                          >
+                            {opt.description}
+                          </div>
+                        </Button>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
