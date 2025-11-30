@@ -33,6 +33,23 @@ function parseLinks(text: string): Array<{ type: "text" | "link"; content: strin
   return segments;
 }
 
+// Fallback download when saveAs fails (CSP/extension)
+function downloadBlob(blob: Blob, filename: string) {
+  try {
+    saveAs(blob, filename);
+  } catch {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+}
+
 function extractSources(content: string): Array<{ index: string; label: string; url?: string }> {
   const sources: Array<{ index: string; label: string; url?: string }> = [];
   const lines = content.split("\n");
@@ -156,7 +173,8 @@ export async function exportToPDF(content: string, title: string = "Rapport Scra
     x = margin;
   }
   
-  doc.save(`${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+  const pdfBlob = doc.output("blob");
+  downloadBlob(pdfBlob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
 }
 
 // Export to Word with clickable links
@@ -327,7 +345,7 @@ export async function exportToWord(content: string, title: string = "Rapport Scr
   });
   
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.docx`);
+  downloadBlob(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.docx`);
 }
 
 export async function exportToExcel(content: string, title: string = "Rapport ScrapAI"): Promise<void> {
@@ -363,7 +381,7 @@ export async function exportToExcel(content: string, title: string = "Rapport Sc
     .join("\n");
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.csv`);
+  downloadBlob(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.csv`);
 }
 
 export async function exportDocument({ title, content, format }: ExportOptions): Promise<void> {
