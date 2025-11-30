@@ -75,60 +75,55 @@ serve(async (req) => {
 
     // Deep scraping: follow internal links and priority paths
     if (shouldDeepScrape) {
-      // First, try priority paths (actualités, news, etc.)
-      const priorityUrls = PRIORITY_PATHS
-        .map(path => {
-          try {
-            return new URL(path, baseUrl.origin).href;
-          } catch {
-            return null;
+      const queue: string[] = [];
+
+      // Seed queue with priority paths (actualités, news, etc.)
+      PRIORITY_PATHS.forEach(path => {
+        try {
+          const href = new URL(path, baseUrl.origin).href;
+          if (!visitedUrls.has(href)) queue.push(href);
+        } catch {
+          // ignore
+        }
+      });
+
+      // Seed queue with promising internal links from the main page
+      const pushLink = (href: string) => {
+        if (visitedUrls.has(href)) return;
+        if (href.match(/\.(css|js|png|jpg|jpeg|gif|svg|pdf|doc|ico)$/i)) return;
+        if (href.includes('login') || href.includes('contact') || href.includes('mailto:') || href.includes('tel:')) return;
+        if (href.length >= 220) return;
+        try {
+          const linkUrl = new URL(href, url);
+          const path = linkUrl.pathname.toLowerCase();
+          const isArticleLike =
+            /(article|actualite|actualites|news|blog|post|story|publication|presse)/.test(path) ||
+            path.split('/').length > 3 ||
+            path.includes('page=');
+          if (linkUrl.hostname === baseUrl.hostname && isArticleLike) {
+            queue.push(linkUrl.href);
           }
-        })
-        .filter((u): u is string => u !== null && !visitedUrls.has(u));
+        } catch {
+          // ignore
+        }
+      };
 
-      // Also get promising internal links from the main page
-      const internalLinks = (mainResult.links || [])
-        .filter(link => {
-          try {
-            const linkUrl = new URL(link, url);
-            const href = linkUrl.href;
-            const path = linkUrl.pathname.toLowerCase();
-            // Same domain, not visited, and looks like content (not assets)
-            const isArticleLike = /(article|actualite|news|blog|post|story)/.test(path) || path.split('/').length > 3;
-            return linkUrl.hostname === baseUrl.hostname && 
-                   !visitedUrls.has(href) &&
-                   !href.match(/\.(css|js|png|jpg|jpeg|gif|svg|pdf|doc|ico)$/i) &&
-                   !href.includes('login') &&
-                   !href.includes('contact') &&
-                   !href.includes('mailto:') &&
-                   !href.includes('tel:') &&
-                   href.length < 200 &&
-                   isArticleLike;
-          } catch {
-            return false;
-          }
-        })
-        // Prioritise article-like deep paths
-        .sort((a, b) => {
-          const depth = (p: string) => p.split('/').length;
-          return depth(b) - depth(a);
-        })
-        .slice(0, 20);
+      (mainResult.links || []).forEach(pushLink);
 
-      // Combine and deduplicate URLs
-      const urlsToScrape = [...new Set([...priorityUrls, ...internalLinks])].slice(0, Math.max(0, maxPagesToScrape - 1));
-      console.log('Deep scraping', urlsToScrape.length, 'additional URLs (limit set by user)');
+      console.log('Deep scraping queue seeded with', queue.length, 'links');
 
-      // Scrape additional pages in parallel (max 3 at a time for performance)
-      for (let i = 0; i < urlsToScrape.length; i += 3) {
-        const batch = urlsToScrape.slice(i, i + 3);
+      // BFS over queue until maxPagesToScrape
+      while (queue.length > 0 && scrapedPages.length < maxPagesToScrape) {
+        const batch = queue.splice(0, 3);
         const results = await Promise.all(
           batch.map(async (pageUrl) => {
             if (visitedUrls.has(pageUrl)) return null;
             visitedUrls.add(pageUrl);
-            
+
             const result = await scrapePage(pageUrl);
-            if (result.success && result.content && result.content.length > 300) {
+            if (result.success && result.content && result.content.length > 200) {
+              // Enqueue new links from this page
+              (result.links || []).forEach(pushLink);
               return {
                 url: pageUrl,
                 title: result.title || new URL(pageUrl).pathname,
@@ -140,7 +135,9 @@ serve(async (req) => {
         );
 
         results.forEach(page => {
-          if (page) scrapedPages.push(page);
+          if (page && scrapedPages.length < maxPagesToScrape) {
+            scrapedPages.push(page);
+          }
         });
       }
     }
