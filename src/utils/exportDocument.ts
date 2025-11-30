@@ -1,6 +1,5 @@
 import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, HeadingLevel } from "docx";
-import { saveAs } from "file-saver";
 
 interface ExportOptions {
   title: string;
@@ -33,33 +32,17 @@ function parseLinks(text: string): Array<{ type: "text" | "link"; content: strin
   return segments;
 }
 
-// Fallback download when saveAs fails (CSP/extension)
+// Minimal, reliable download helper (avoids file-saver quirks)
 function downloadBlob(blob: Blob, filename: string) {
-  try {
-    saveAs(blob, filename);
-  } catch {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-}
-
-function safeDownloadPdf(doc: jsPDF, filename: string) {
-  // Some browsers (notably Safari) prefer doc.save; keep blob fallback for CSP/blocked saveAs
-  try {
-    doc.save(filename, { returnPromise: false });
-    return;
-  } catch {
-    /* continue to blob fallback */
-  }
-  const pdfBlob = doc.output("blob");
-  downloadBlob(pdfBlob, filename);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function extractSources(content: string): Array<{ index: string; label: string; url?: string }> {
@@ -186,7 +169,8 @@ export async function exportToPDF(content: string, title: string = "Rapport Scra
       x = margin;
     }
     
-    safeDownloadPdf(doc, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+    const pdfBlob = doc.output("blob");
+    downloadBlob(pdfBlob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
   } catch (error) {
     console.error("PDF export failed", error);
     throw error;
@@ -359,7 +343,7 @@ export async function exportToWord(content: string, title: string = "Rapport Scr
       },
     ],
   });
-  
+
   const blob = await Packer.toBlob(doc);
   downloadBlob(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.docx`);
 }
