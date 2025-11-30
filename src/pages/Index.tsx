@@ -16,6 +16,13 @@ import { toast } from "sonner";
 import sitesData from "@/data/sites.json";
 import { MessageContent } from "@/components/MessageContent";
 
+type Occurrence = {
+  siteName: string;
+  pageTitle: string;
+  pageUrl: string;
+  snippet: string;
+};
+
 const Index = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
@@ -111,6 +118,7 @@ const Index = () => {
         content: data.content || "",
         siteName: site.name,
         pages: data.pages || [],
+        occurrences: (data.occurrences || []) as Occurrence[],
       };
     }
     return null;
@@ -180,10 +188,17 @@ const Index = () => {
     toast.info("Scraping en cours...");
 
     const scrapedSites: any[] = [];
+    const allOccurrences: Occurrence[] = [];
+
     for (const site of sites) {
       try {
         const res = await scrapeSite(site, depth);
-        if (res) scrapedSites.push(res);
+        if (res) {
+          scrapedSites.push(res);
+          if (res.occurrences && res.occurrences.length > 0) {
+            allOccurrences.push(...res.occurrences);
+          }
+        }
       } catch {
         // ignore single failure
       }
@@ -196,7 +211,15 @@ const Index = () => {
     }
 
     if (!geminiEnabled) {
-      const plain = buildOccurrences(scrapedSites, prompt);
+      const plain =
+        allOccurrences.length > 0
+          ? allOccurrences
+              .map(
+                (occ) =>
+                  `${occ.siteName || occ.pageTitle} :\n- [${occ.pageTitle}](${occ.pageUrl}) — ${occ.snippet}`
+              )
+              .join("\n\n")
+          : buildOccurrences(scrapedSites, prompt);
       setResultText(
         plain
           ? `Occurences trouvées pour "${prompt}":\n\n${plain}`
