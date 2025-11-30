@@ -93,7 +93,6 @@ const navItems = [
   { title: "Accueil", url: "/", icon: LayoutDashboard },
   { title: "Actualités", url: "/actualites", icon: Newspaper },
   { title: "Offres d'emploi", url: "/emploi", icon: Briefcase },
-  { title: "Sites juridiques", url: "/playwright", icon: CheckCircle2 },
   { title: "Gestion des sites", url: "/sites", icon: List },
   { title: "PDF", url: "/bibliotheque", icon: BookOpenText },
 ];
@@ -140,7 +139,7 @@ export function AppSidebar({
   };
 
   return (
-    <Sidebar className="border-r-0 bg-gradient-to-b from-[#7dc5ff] via-[#4f97f7] to-[#2d5dd7] text-white shadow-[8px_0_24px_rgba(0,0,0,0.28)]">
+    <Sidebar className="border-r-0 bg-gradient-to-b from-[#bde4ff] via-[#7cb9ff] to-[#4a94f0] text-white shadow-[8px_0_24px_rgba(0,0,0,0.28)]">
       {/* Header */}
       <SidebarHeader className="p-5 border-b border-white/15">
         <div className="flex items-center gap-3">
@@ -164,6 +163,50 @@ export function AppSidebar({
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Sites juridiques dropdown with Auto Login */}
+              <SidebarMenuItem>
+                <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
+                  <CollapsibleTrigger asChild>
+                    <NavLink
+                      to="/playwright"
+                      end
+                      className={cn(
+                        "group relative flex items-center gap-3 px-4 py-3 text-sm font-medium text-white/90 rounded-lg transition-all duration-300 hover:text-white hover:bg-white/15 hover:translate-x-1",
+                        location.pathname === "/playwright" && "text-white bg-white/15 shadow-[0_10px_30px_rgba(79,151,247,0.35)]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute left-0 top-1/2 -translate-y-1/2 h-9 w-1 rounded-r-full bg-gradient-to-b from-[#b8e1ff] to-[#7cb4ff] opacity-0 transition-all duration-300 group-hover:opacity-90 group-hover:w-1.5",
+                          location.pathname === "/playwright" && "opacity-100 w-1.5",
+                        )}
+                      />
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-white/80 transition-all duration-300 group-hover:scale-110 drop-shadow-sm" />
+                      {!collapsed && <span className="text-sm flex-1 text-left">Sites juridiques</span>}
+                      {!collapsed && (
+                        <ChevronDown className={cn("h-3 w-3 transition-transform", autoLoginOpen && "rotate-180")} />
+                      )}
+                    </NavLink>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 space-y-1 px-3 pb-2">
+                      {AUTO_LOGIN_SITES.map((site) => (
+                        <button
+                          key={site.id}
+                          onClick={() => triggerAutoLogin(site)}
+                          className="flex items-center gap-2 w-full text-left rounded-md p-2 transition-all duration-300 text-sm group text-white/85 hover:text-white hover:bg-white/12 hover:translate-x-1"
+                        >
+                          <span className="text-lg">{site.icon}</span>
+                          <span className="flex-1">{site.name}</span>
+                          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity duration-200" />
+                        </button>
+                      ))}
+                      <p className="text-[10px] text-white/70 px-2 pt-1">Extension Chrome requise</p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenuItem>
+
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
               <NavLink 
@@ -189,90 +232,6 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Auto Login */}
-        {!collapsed && (
-          <SidebarGroup className="mt-6">
-            <Collapsible open={autoLoginOpen} onOpenChange={setAutoLoginOpen}>
-              <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-white/70 px-4 flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
-                  <KeyRound className="h-3 w-3" />
-                  Auto Login
-                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", autoLoginOpen && "rotate-180")} />
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="px-2 mt-2">
-                  <div className="space-y-1">
-                    {AUTO_LOGIN_SITES.map((site) => (
-                      <button
-                        key={site.id}
-                        onClick={() => triggerAutoLogin(site)}
-                        className="flex items-center gap-2 w-full text-left rounded-md p-2 transition-all duration-300 text-sm group text-white/80 hover:text-white hover:bg-white/10 hover:translate-x-1"
-                      >
-                        <span className="text-lg">{site.icon}</span>
-                        <span className="flex-1">{site.name}</span>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity duration-200" />
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-white/70 mt-2 px-2">
-                    Extension Chrome requise
-                  </p>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
-
-        {/* Categories Filter */}
-        {!collapsed && (
-          <SidebarGroup className="mt-6">
-            <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
-              <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.08em] text-white/70 px-4 flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
-                  <Filter className="h-3 w-3" />
-                  Catégories
-                  {selectedCategories.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto mr-2 h-5 px-1.5 text-[10px] bg-white/10 text-white border border-white/20 shadow-[0_6px_20px_rgba(0,0,0,0.25)]">
-                      {selectedCategories.length}
-                    </Badge>
-                  )}
-                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", categoriesOpen && "rotate-180")} />
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarGroupContent className="px-2 mt-2">
-                  <div className="space-y-1">
-                    {CATEGORIES.map((category) => (
-                      <label
-                        key={category.id}
-                        className="flex items-center gap-2 cursor-pointer rounded-md p-2 transition-all duration-300 hover:bg-white/10 hover:translate-x-1"
-                      >
-                        <Checkbox
-                          checked={selectedCategories.includes(category.id)}
-                          onCheckedChange={() => onCategoryToggle(category.id)}
-                        />
-                        <Badge variant="outline" className={cn("text-xs", category.color)}>
-                          {category.label}
-                        </Badge>
-                      </label>
-                    ))}
-                  </div>
-                  {selectedCategories.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs mt-3 text-white/80 hover:text-white hover:bg-white/10"
-                      onClick={onClearCategories}
-                    >
-                      Tout désélectionner
-                    </Button>
-                  )}
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
     </Sidebar>
