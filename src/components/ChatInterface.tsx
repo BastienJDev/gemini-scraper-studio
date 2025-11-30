@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe, Download, FileText, FileIcon, FileSpreadsheet, Target, Search, SlidersHorizontal, RefreshCw, Lightbulb } from "lucide-react";
+import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe, Download, FileText, FileIcon, FileSpreadsheet, Target, Search, SlidersHorizontal, RefreshCw, Lightbulb, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -440,6 +440,8 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     }
   };
 
+  const clampDepth = (val: number) => Math.min(Math.max(Math.round(val) || 1, 1), 20);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -449,6 +451,91 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
 
   const sitesCount = mode === "scrape" && targetUrl.trim() ? 1 : getSitesForCategories().length;
   const hasContext = selectedCategories.length > 0 || (mode === "scrape" && targetUrl.trim().length > 0);
+  const renderInputArea = (variant: "hero" | "footer") => (
+    <div
+      className={
+        variant === "footer"
+          ? "border-t border-border p-4 bg-card"
+          : "p-4 bg-card/60 border border-border rounded-xl shadow-sm mt-6"
+      }
+    >
+      <div className="max-w-3xl mx-auto space-y-3">
+        {/* Category filter above prompt */}
+        {onCategoryToggle && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            {CATEGORIES.map((category) => (
+              <Badge
+                key={category.id}
+                variant="outline"
+                className={cn(
+                  "cursor-pointer transition-all text-xs",
+                  selectedCategories.includes(category.id)
+                    ? category.color + " ring-1 ring-offset-1"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                )}
+                onClick={() => onCategoryToggle(category.id)}
+              >
+                {category.label}
+              </Badge>
+            ))}
+            {selectedCategories.length > 0 && onClearCategories && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                onClick={onClearCategories}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Tout effacer
+              </Button>
+            )}
+          </div>
+        )}
+        
+        <div className="flex gap-3 items-end">
+          <Textarea
+            placeholder={
+              selectedCategories.length > 0
+                ? `Posez votre question (${sitesCount} sites seront analysés)...`
+                : mode === "scrape"
+                  ? "Décrivez ce que vous voulez extraire sur ce site..."
+                  : "Sélectionnez des catégories ou passez en mode scraping..."
+            }
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
+            disabled={isLoading}
+          />
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!input.trim() || isLoading || isRephrasing}
+              onClick={rephrasePrompt}
+              className="gap-2"
+            >
+              {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Reformuler via Gemini
+            </Button>
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -508,11 +595,44 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
             <div className="space-y-4">
               <Slider
                 value={[depth]}
-                onValueChange={(val) => setDepth(val[0] || 1)}
+                onValueChange={(val) => setDepth(clampDepth(val[0] || 1))}
                 min={1}
                 max={20}
                 step={1}
               />
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setDepth((d) => clampDepth(d - 1))}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setDepth((d) => clampDepth(d + 1))}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[3, 6, 10, 15, 20].map((preset) => (
+                    <Button
+                      key={preset}
+                      size="sm"
+                      variant={depth === preset ? "default" : "outline"}
+                      className="text-xs"
+                      onClick={() => setDepth(preset)}
+                    >
+                      {preset} pages
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <SlidersHorizontal className="h-3 w-3" />
                 Affine la profondeur pour équilibrer vitesse et exhaustivité.
@@ -736,83 +856,11 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4 bg-card">
-        <div className="max-w-3xl mx-auto space-y-3">
-          {/* Category filter above prompt */}
-          {onCategoryToggle && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              {CATEGORIES.map((category) => (
-                <Badge
-                  key={category.id}
-                  variant="outline"
-                  className={cn(
-                    "cursor-pointer transition-all text-xs",
-                    selectedCategories.includes(category.id)
-                      ? category.color + " ring-1 ring-offset-1"
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                  )}
-                  onClick={() => onCategoryToggle(category.id)}
-                >
-                  {category.label}
-                </Badge>
-              ))}
-              {selectedCategories.length > 0 && onClearCategories && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
-                  onClick={onClearCategories}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Tout effacer
-                </Button>
-              )}
-            </div>
-          )}
-          
-          <div className="flex gap-3 items-end">
-            <Textarea
-              placeholder={
-                selectedCategories.length > 0
-                  ? `Posez votre question (${sitesCount} sites seront analysés)...`
-                  : mode === "scrape"
-                    ? "Décrivez ce que vous voulez extraire sur ce site..."
-                    : "Sélectionnez des catégories ou passez en mode scraping..."
-              }
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
-              disabled={isLoading}
-            />
-            <div className="flex flex-col gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!input.trim() || isLoading || isRephrasing}
-                onClick={rephrasePrompt}
-                className="gap-2"
-              >
-                {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Reformuler via Gemini
-              </Button>
-              <Button
-                onClick={sendMessage}
-                disabled={isLoading || !input.trim()}
-                size="icon"
-                className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {messages.length === 0 ? (
+        <div className="px-4 pb-8">{renderInputArea("hero")}</div>
+      ) : (
+        renderInputArea("footer")
+      )}
     </div>
   );
 };

@@ -290,26 +290,26 @@ export async function exportToWord(content: string, title: string = "Rapport Scr
     );
 
     sources.forEach((source) => {
-      const label = source.label || `Source ${source.index}`;
+      const displayUrl = source.url || source.label || `Source ${source.index}`;
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: `${source.index}. ${label} `,
+              text: `${source.index}. `,
               bold: true,
             }),
             source.url
               ? new ExternalHyperlink({
                   children: [
                     new TextRun({
-                      text: source.url,
+                      text: displayUrl,
                       color: "0066CC",
                       underline: { type: "single" },
                     }),
                   ],
                   link: source.url,
                 })
-              : new TextRun({ text: "" }),
+              : new TextRun({ text: displayUrl }),
           ],
           spacing: { after: 120 },
         })
