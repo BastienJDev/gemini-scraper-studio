@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 interface ExportOptions {
   title: string;
@@ -32,17 +33,40 @@ function parseLinks(text: string): Array<{ type: "text" | "link"; content: strin
   return segments;
 }
 
-// Minimal, reliable download helper (avoids file-saver quirks)
+// Robust download helper with multiple fallbacks
 function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Try file-saver first (handles Safari / IE)
+  try {
+    saveAs(blob, filename);
+    return;
+  } catch (err) {
+    console.warn("saveAs failed, fallback to anchor download", err);
+  }
+
+  // Fallback to anchor download
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return;
+  } catch (err) {
+    console.error("Anchor download failed", err);
+  }
+
+  // Last resort: open in new tab
+  try {
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    console.error("Final download fallback failed", err);
+  }
 }
 
 function extractSources(content: string): Array<{ index: string; label: string; url?: string }> {
@@ -173,7 +197,7 @@ export async function exportToPDF(content: string, title: string = "Rapport Scra
     downloadBlob(pdfBlob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
   } catch (error) {
     console.error("PDF export failed", error);
-    throw error;
+    throw new Error("PDF export failed");
   }
 }
 
@@ -385,11 +409,16 @@ export async function exportToExcel(content: string, title: string = "Rapport Sc
 }
 
 export async function exportDocument({ title, content, format }: ExportOptions): Promise<void> {
-  if (format === "pdf") {
-    await exportToPDF(content, title);
-  } else if (format === "docx") {
-    await exportToWord(content, title);
-  } else {
-    await exportToExcel(content, title);
+  try {
+    if (format === "pdf") {
+      await exportToPDF(content, title);
+    } else if (format === "docx") {
+      await exportToWord(content, title);
+    } else {
+      await exportToExcel(content, title);
+    }
+  } catch (err) {
+    console.error("Export error", err);
+    throw err;
   }
 }
