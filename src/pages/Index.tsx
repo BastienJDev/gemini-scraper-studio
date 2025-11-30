@@ -141,12 +141,19 @@ const Index = () => {
             break;
           }
         }
-        const sentence = p.content
-          .substring(Math.max(0, sentenceStart - 10), Math.min(p.content.length, sentenceEnd + 10))
+        const sentence = p.content.substring(
+          Math.max(0, sentenceStart - 10),
+          Math.min(p.content.length, sentenceEnd + 10)
+        );
+        const cleaned = sentence
+          .replace(/#+/g, "")
           .replace(/\\s+/g, " ")
+          .replace(/\\s([,.!?;:])/g, "$1")
           .trim();
+        const maxLen = 240;
+        const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
 
-        siteLines.push(`[${p.title || p.url}](${p.url}) — ${sentence}`);
+        siteLines.push(`[${p.title || p.url}](${p.url}) — ${snippet}`);
       });
       if (siteLines.length > 0) {
         lines.push(`${s.siteName || s.title || s.url} :\n${siteLines.map((l) => `- ${l}`).join("\n")}`);
