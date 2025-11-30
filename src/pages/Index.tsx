@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,6 +123,7 @@ const Index = () => {
                           key={cat.id}
                           checked={selectedCategories.includes(cat.id)}
                           onCheckedChange={() => toggleCategory(cat.id)}
+                          onSelect={(e) => e.preventDefault()} // keep menu open for multi-select
                         >
                           {cat.label}
                         </DropdownMenuCheckboxItem>
@@ -151,8 +153,8 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground">Reformuler via Gemini</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Profondeur: {depthOptions.find((o) => o.id === depth)?.label}
+                <div className="flex items-center gap-2">
+                  <Switch checked={geminiEnabled} onCheckedChange={setGeminiEnabled} />
                 </div>
               </div>
 
