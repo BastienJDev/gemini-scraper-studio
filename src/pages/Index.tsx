@@ -180,7 +180,7 @@ const Index = () => {
     toast.info("Scraping en cours...");
 
     const scrapedSites: any[] = [];
-    for (const site of sites.slice(0, 8)) {
+    for (const site of sites) {
       try {
         const res = await scrapeSite(site, depth);
         if (res) scrapedSites.push(res);
