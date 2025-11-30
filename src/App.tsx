@@ -11,18 +11,9 @@ import Bibliotheque from "./pages/Bibliotheque";
 import NotFound from "./pages/NotFound";
 import Playwright from "./pages/Playwright";
 import Login from "./pages/Login";
-import { AuthProvider, useAuth } from "./auth/AuthContext";
-import { Navigate } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
 
 const queryClient = new QueryClient();
-
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return <>{children}</>;
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -35,51 +26,27 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route
               path="/"
-              element={
-                <PrivateRoute>
-                  <Index />
-                </PrivateRoute>
-              }
+              element={<Index />}
             />
             <Route
               path="/sites"
-              element={
-                <PrivateRoute>
-                  <Sites />
-                </PrivateRoute>
-              }
+              element={<Sites />}
             />
             <Route
               path="/emploi"
-              element={
-                <PrivateRoute>
-                  <Emploi />
-                </PrivateRoute>
-              }
+              element={<Emploi />}
             />
             <Route
               path="/actualites"
-              element={
-                <PrivateRoute>
-                  <Actualites />
-                </PrivateRoute>
-              }
+              element={<Actualites />}
             />
             <Route
               path="/bibliotheque"
-              element={
-                <PrivateRoute>
-                  <Bibliotheque />
-                </PrivateRoute>
-              }
+              element={<Bibliotheque />}
             />
             <Route
               path="/playwright"
-              element={
-                <PrivateRoute>
-                  <Playwright />
-                </PrivateRoute>
-              }
+              element={<Playwright />}
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
