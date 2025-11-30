@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Trash2, Filter, Globe, Download, FileText, FileIcon, FileSpreadsheet, SlidersHorizontal, RefreshCw, Lightbulb } from "lucide-react";
+import { Send, Loader2, Bot, User, Trash2, Filter, Globe, Download, FileText, FileIcon, FileSpreadsheet, SlidersHorizontal, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +65,6 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isRephrasing, setIsRephrasing] = useState(false);
   const [useGeminiSummary, setUseGeminiSummary] = useState(false);
   const [depthLevel, setDepthLevel] = useState<1 | 2 | 3>(1);
   const [scrapingProgress, setScrapingProgress] = useState<{ current: number; total: number } | null>(null);
@@ -389,84 +388,6 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     } finally {
       setIsLoading(false);
       setScrapingProgress(null);
-    }
-  };
-
-  const rephrasePrompt = async () => {
-    if (isLoading || isRephrasing) return;
-    const baseText =
-      input.trim() ||
-      [...messages].reverse().find((m) => m.role === "user")?.content?.trim() ||
-      "";
-
-    if (!baseText) {
-      toast.error("Ajoute un prompt à reformuler");
-      return;
-    }
-    setIsRephrasing(true);
-    try {
-      const response = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          mode: "rephrase",
-          messages: [{ role: "user", content: baseText }],
-          scrapedSites: [],
-          categories: selectedCategories,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error("Impossible de reformuler maintenant");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let rephrased = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              rephrased += content;
-            }
-          } catch {
-            // partial chunk
-          }
-        }
-      }
-
-      if (rephrased.trim()) {
-        setInput(rephrased.trim());
-        toast.success("Reformulation prête");
-      }
-    } catch (error) {
-      console.error("Rephrase error:", error);
-      toast.error("La reformulation a échoué");
-    } finally {
-      setIsRephrasing(false);
     }
   };
 
