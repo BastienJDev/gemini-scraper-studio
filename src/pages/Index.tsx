@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import sitesData from "@/data/sites.json";
+import { MessageContent } from "@/components/MessageContent";
 
 const Index = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -378,8 +379,8 @@ const Index = () => {
             </Card>
 
             {resultText && (
-              <Card className="bg-white/90 border-[#d8e2f3] shadow rounded-2xl p-4 text-left whitespace-pre-wrap">
-                {resultText}
+              <Card className="bg-white/90 border-[#d8e2f3] shadow rounded-2xl p-4 text-left">
+                <MessageContent content={resultText} />
               </Card>
             )}
 
