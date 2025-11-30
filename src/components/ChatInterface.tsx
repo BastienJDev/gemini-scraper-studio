@@ -3,6 +3,7 @@ import { Send, Loader2, Bot, User, Trash2, Filter, Globe, Download, FileText, Fi
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import sitesData from "@/data/sites.json";
@@ -65,6 +66,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRephrasing, setIsRephrasing] = useState(false);
+  const [useGeminiSummary, setUseGeminiSummary] = useState(false);
   const [depthLevel, setDepthLevel] = useState<1 | 2 | 3>(1);
   const [scrapingProgress, setScrapingProgress] = useState<{ current: number; total: number } | null>(null);
   const [refinementSuggestions, setRefinementSuggestions] = useState<string[]>([]);
