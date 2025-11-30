@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe, Download, FileText, FileIcon } from "lucide-react";
+import { Send, Loader2, Bot, User, Sparkles, Trash2, Filter, Globe, Download, FileText, FileIcon, FileSpreadsheet, Target, Search, SlidersHorizontal, RefreshCw, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import sitesData from "@/data/sites.json";
-import { exportToPDF, exportToWord } from "@/utils/exportDocument";
+import { exportToPDF, exportToWord, exportToExcel } from "@/utils/exportDocument";
 import { MessageContent } from "@/components/MessageContent";
 import {
   DropdownMenu,
@@ -58,7 +60,12 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRephrasing, setIsRephrasing] = useState(false);
+  const [mode, setMode] = useState<"search" | "scrape">("search");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [depth, setDepth] = useState(6);
   const [scrapingProgress, setScrapingProgress] = useState<{ current: number; total: number } | null>(null);
+  const [refinementSuggestions, setRefinementSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -134,8 +141,9 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
       .filter(site => isValidUrl(site.url));
   };
 
-  // Scrape a single site with deep crawling
-  const scrapeSite = async (site: { name: string; url: string }): Promise<ScrapedSite | null> => {
+  // Scrape a single site with configurable depth
+  const scrapeSite = async (site: { name: string; url: string }, depthLevel: number): Promise<ScrapedSite | null> => {
+    const depthToUse = Math.min(Math.max(Math.round(depthLevel) || 1, 1), 20);
     try {
       const response = await fetch(SCRAPE_URL, {
         method: "POST",
@@ -143,7 +151,11 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ url: site.url, deep: true }),
+        body: JSON.stringify({ 
+          url: site.url, 
+          deep: depthToUse > 1,
+          maxPages: depthToUse,
+        }),
       });
 
       const data = await response.json();
@@ -168,7 +180,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
   };
 
   // Scrape all sites from categories (no limit)
-  const scrapeAllSites = async (): Promise<ScrapedSite[]> => {
+  const scrapeAllSites = async (depthLevel: number): Promise<ScrapedSite[]> => {
     const sites = getSitesForCategories();
     
     if (sites.length === 0) return [];
@@ -179,7 +191,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     // Scrape in batches of 5 for performance
     for (let i = 0; i < sites.length; i += 5) {
       const batch = sites.slice(i, i + 5);
-      const results = await Promise.all(batch.map(site => scrapeSite(site)));
+      const results = await Promise.all(batch.map(site => scrapeSite(site, depthLevel)));
       
       results.forEach(result => {
         if (result) scrapedSites.push(result);
@@ -192,6 +204,33 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     return scrapedSites;
   };
 
+  const buildRefinementSuggestions = (context: { scrapedSites: ScrapedSite[]; depthUsed: number; modeUsed: "search" | "scrape"; hasCategories: boolean; target: string }) => {
+    const pagesScraped = context.scrapedSites.reduce((acc, site) => acc + (site.pages?.length || 1), 0);
+    const suggestions = new Set<string>();
+
+    if (context.modeUsed === "scrape" && context.target) {
+      suggestions.add("Scraper uniquement les actualités de ce site");
+      suggestions.add("Reformule la requête pour cibler un angle précis");
+    }
+
+    if (context.hasCategories) {
+      suggestions.add("Limiter aux 7 derniers jours");
+      suggestions.add("Comparer deux sources principales");
+    }
+
+    const nextDepth = Math.min(context.depthUsed + 2, 20);
+    if (pagesScraped < context.depthUsed) {
+      suggestions.add(`Augmenter la profondeur à ${nextDepth} pages`);
+    } else {
+      suggestions.add(`Réduire la profondeur à ${Math.max(1, context.depthUsed - 2)} pages pour aller plus vite`);
+    }
+
+    suggestions.add("Demander un plan d'action en 5 points");
+    suggestions.add("Extraire uniquement les chiffres clés");
+
+    return Array.from(suggestions).slice(0, 5);
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -199,6 +238,7 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setRefinementSuggestions([]);
 
     let assistantContent = "";
 
@@ -213,13 +253,25 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
         // Use the single scraped site from Sites page
         scrapedSites = [scrapedData];
         console.log("[ChatInterface] Using provided scrapedData");
+      } else if (mode === "scrape" && targetUrl.trim()) {
+        if (!isValidUrl(cleanUrl(targetUrl))) {
+          throw new Error("URL invalide pour le scraping");
+        }
+        toast.info("Scraping ciblé en cours...");
+        const singleSite = await scrapeSite({ name: cleanUrl(targetUrl), url: cleanUrl(targetUrl) }, depth);
+        if (singleSite) {
+          scrapedSites = [singleSite];
+          toast.success(`Scraping effectué (${singleSite.pages?.length || 1} page${(singleSite.pages?.length || 1) > 1 ? "s" : ""})`);
+        } else {
+          toast.error("Impossible de scraper cette URL");
+        }
       } else if (selectedCategories.length > 0) {
         toast.info("Analyse des sites en cours...");
-        scrapedSites = await scrapeAllSites();
+        scrapedSites = await scrapeAllSites(depth);
         console.log("[ChatInterface] Scraped sites count:", scrapedSites.length);
         console.log("[ChatInterface] Total content length:", scrapedSites.reduce((acc, s) => acc + (s.content?.length || 0), 0));
         if (scrapedSites.length > 0) {
-          toast.success(`${scrapedSites.length} sites analysés`);
+          toast.success(`${scrapedSites.length} sites analysés (profondeur ${depth})`);
         }
       } else {
         console.log("[ChatInterface] No categories selected, no scraping");
@@ -297,6 +349,16 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
           }
         }
       }
+
+      setRefinementSuggestions(
+        buildRefinementSuggestions({
+          scrapedSites,
+          depthUsed: depth,
+          modeUsed: mode,
+          hasCategories: selectedCategories.length > 0,
+          target: targetUrl,
+        })
+      );
     } catch (error) {
       console.error("Chat error:", error);
       toast.error(error instanceof Error ? error.message : "Erreur lors de l'envoi");
@@ -309,6 +371,75 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     }
   };
 
+  const rephrasePrompt = async () => {
+    if (!input.trim() || isLoading || isRephrasing) return;
+    setIsRephrasing(true);
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          mode: "rephrase",
+          messages: [{ role: "user", content: input.trim() }],
+          scrapedSites: [],
+          categories: selectedCategories,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error("Impossible de reformuler maintenant");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let rephrased = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              rephrased += content;
+            }
+          } catch {
+            // partial chunk
+          }
+        }
+      }
+
+      if (rephrased.trim()) {
+        setInput(rephrased.trim());
+        toast.success("Reformulation prête");
+      }
+    } catch (error) {
+      console.error("Rephrase error:", error);
+      toast.error("La reformulation a échoué");
+    } finally {
+      setIsRephrasing(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -316,11 +447,81 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
     }
   };
 
-  const sitesCount = getSitesForCategories().length;
-  const hasContext = selectedCategories.length > 0;
+  const sitesCount = mode === "scrape" && targetUrl.trim() ? 1 : getSitesForCategories().length;
+  const hasContext = selectedCategories.length > 0 || (mode === "scrape" && targetUrl.trim().length > 0);
 
   return (
     <div className="flex flex-col h-full">
+      <div className="px-4 pt-6">
+        <div className="max-w-3xl mx-auto grid gap-3 md:grid-cols-2">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div>
+                <p className="text-xs uppercase text-muted-foreground">Scraping / Recherche</p>
+                <p className="text-sm font-medium">Choisissez le mode</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={mode === "search" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMode("search")}
+                  className="gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  Recherche
+                </Button>
+                <Button
+                  variant={mode === "scrape" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMode("scrape")}
+                  className="gap-2"
+                >
+                  <Target className="h-4 w-4" />
+                  Scraping ciblé
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground">URL à analyser (optionnel)</label>
+              <Input
+                placeholder="https://exemple.com/actualites..."
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
+                disabled={mode !== "scrape"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Saisissez un prompt puis, en mode scraping, ajoutez l'URL à explorer pour lancer une recherche ciblée.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div>
+                <p className="text-xs uppercase text-muted-foreground">Niveau de profondeur</p>
+                <p className="text-sm font-medium">Combien de pages explorer</p>
+              </div>
+              <Badge variant="outline" className="text-xs px-2 py-1">
+                {depth} page{depth > 1 ? "s" : ""}
+              </Badge>
+            </div>
+            <div className="space-y-4">
+              <Slider
+                value={[depth]}
+                onValueChange={(val) => setDepth(val[0] || 1)}
+                min={1}
+                max={20}
+                step={1}
+              />
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <SlidersHorizontal className="h-3 w-3" />
+                Affine la profondeur pour équilibrer vitesse et exhaustivité.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header with context info */}
       {messages.length > 0 && (
         <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between gap-2 flex-wrap rounded-t-xl m-4 mb-0">
@@ -333,6 +534,18 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
                 </span>
               </div>
             )}
+            {mode === "scrape" && targetUrl && (
+              <div className="flex items-center gap-1">
+                <Target className="h-3 w-3 text-primary" />
+                <span className="text-xs text-muted-foreground truncate max-w-[220px]">
+                  Scraping: {targetUrl}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <SlidersHorizontal className="h-3 w-3 text-primary" />
+              <span className="text-xs text-muted-foreground">Profondeur: {depth} page{depth > 1 ? "s" : ""}</span>
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -355,19 +568,21 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
                 <Sparkles className="h-8 w-8 text-primary-foreground" />
               </div>
               <h3 className="text-xl font-medium text-foreground mb-2">
-                {hasContext ? "Prêt à rechercher" : "Bienvenue sur ScrapAI"}
+                {hasContext ? "Prêt à lancer l'analyse" : "Bienvenue sur ScrapAI"}
               </h3>
               <p className="text-sm text-muted-foreground max-w-md mb-6">
                 {selectedCategories.length > 0
-                  ? `${sitesCount} sites seront analysés puis Gemini fera un résumé avec les sources exactes`
-                  : "Sélectionnez des catégories pour cibler votre recherche"}
+                  ? `${sitesCount} site${sitesCount > 1 ? "s" : ""} seront analysés (profondeur ${depth}) puis Gemini fera un résumé sourcé`
+                  : mode === "scrape" && targetUrl
+                    ? "Le site sera scrappé avec le niveau de profondeur choisi, puis résumé avec les sources"
+                    : "Sélectionnez des catégories ou activez le mode scraping ciblé pour commencer"}
               </p>
               
               {!hasContext && (
                 <div className="space-y-4">
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     <Filter className="h-3.5 w-3.5" />
-                    Utilisez le filtre "Catégories" dans la barre du haut
+                    Utilisez le filtre "Catégories" dans la barre du haut ou activez le mode "Scraping ciblé"
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
                     <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">Sport</Badge>
@@ -468,6 +683,19 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
                             <FileIcon className="h-4 w-4 mr-2 text-blue-500" />
                             Exporter en Word
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                await exportToExcel(message.content, "Rapport ScrapAI");
+                                toast.success("Fichier Excel exporté avec succès");
+                              } catch (e) {
+                                toast.error("Erreur lors de l'export Excel");
+                              }
+                            }}
+                          >
+                            <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                            Exporter en Excel
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -482,6 +710,28 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
             ))
           )}
           <div ref={messagesEndRef} />
+          
+          {refinementSuggestions.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                <p className="text-sm font-medium">Propositions pour affiner la recherche</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {refinementSuggestions.map((suggestion, idx) => (
+                  <Button
+                    key={idx}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() => setInput(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -526,7 +776,9 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
               placeholder={
                 selectedCategories.length > 0
                   ? `Posez votre question (${sitesCount} sites seront analysés)...`
-                  : "Sélectionnez des catégories pour commencer..."
+                  : mode === "scrape"
+                    ? "Décrivez ce que vous voulez extraire sur ce site..."
+                    : "Sélectionnez des catégories ou passez en mode scraping..."
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -534,18 +786,30 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
               className="min-h-[48px] max-h-32 resize-none bg-background border-border focus:border-primary focus:ring-primary/20"
               disabled={isLoading}
             />
-            <Button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              size="icon"
-              className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!input.trim() || isLoading || isRephrasing}
+                onClick={rephrasePrompt}
+                className="gap-2"
+              >
+                {isRephrasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Reformuler via Gemini
+              </Button>
+              <Button
+                onClick={sendMessage}
+                disabled={isLoading || !input.trim()}
+                size="icon"
+                className="h-[48px] w-[48px] bg-primary text-primary-foreground hover:bg-primary/90 glow-primary-sm flex-shrink-0"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

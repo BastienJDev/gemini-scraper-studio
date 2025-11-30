@@ -5,7 +5,7 @@ import { saveAs } from "file-saver";
 interface ExportOptions {
   title: string;
   content: string;
-  format: "pdf" | "docx";
+  format: "pdf" | "docx" | "excel";
 }
 
 // Parse markdown-style links [text](url) and return segments
@@ -31,6 +31,28 @@ function parseLinks(text: string): Array<{ type: "text" | "link"; content: strin
   }
 
   return segments;
+}
+
+function extractSources(content: string): Array<{ index: string; label: string; url?: string }> {
+  const sources: Array<{ index: string; label: string; url?: string }> = [];
+  const lines = content.split("\n");
+  const sourcesIndex = lines.findIndex((line) => line.toLowerCase().includes("sources citées"));
+
+  if (sourcesIndex !== -1) {
+    for (let i = sourcesIndex + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const match = line.match(/-\s*\*\*\[(\d+)\]\*\*\s*\[([^\]]+)\]\(([^)]+)\)/);
+      if (match) {
+        sources.push({
+          index: match[1],
+          label: match[2],
+          url: match[3],
+        });
+      }
+    }
+  }
+
+  return sources;
 }
 
 // Export to PDF with clickable links
@@ -249,6 +271,51 @@ export async function exportToWord(content: string, title: string = "Rapport Scr
       );
     }
   }
+
+  const sources = extractSources(content);
+
+  if (sources.length > 0) {
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "Notes de bas de page optimisées",
+            bold: true,
+            size: 28,
+          }),
+        ],
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 400, after: 200 },
+      })
+    );
+
+    sources.forEach((source) => {
+      const label = source.label || `Source ${source.index}`;
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `${source.index}. ${label} `,
+              bold: true,
+            }),
+            source.url
+              ? new ExternalHyperlink({
+                  children: [
+                    new TextRun({
+                      text: source.url,
+                      color: "0066CC",
+                      underline: { type: "single" },
+                    }),
+                  ],
+                  link: source.url,
+                })
+              : new TextRun({ text: "" }),
+          ],
+          spacing: { after: 120 },
+        })
+      );
+    });
+  }
   
   const doc = new Document({
     sections: [
@@ -263,10 +330,48 @@ export async function exportToWord(content: string, title: string = "Rapport Scr
   saveAs(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.docx`);
 }
 
+export async function exportToExcel(content: string, title: string = "Rapport ScrapAI"): Promise<void> {
+  const rows: string[][] = [];
+  const now = `${new Date().toLocaleDateString("fr-FR")} ${new Date().toLocaleTimeString("fr-FR")}`;
+
+  rows.push(["Titre", title]);
+  rows.push(["Généré le", now]);
+  rows.push([]);
+  rows.push(["Section", "Contenu"]);
+
+  content.split("\n").forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    if (trimmed.startsWith("## ")) {
+      rows.push([trimmed.replace(/^##\s*/, ""), ""]);
+    } else {
+      rows.push(["", trimmed.replace(/\s+/g, " ")]);
+    }
+  });
+
+  const sources = extractSources(content);
+  if (sources.length > 0) {
+    rows.push([]);
+    rows.push(["Sources citées", "URL"]);
+    sources.forEach((source) => {
+      rows.push([source.label || `Source ${source.index}`, source.url || ""]);
+    });
+  }
+
+  const csv = rows
+    .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(";"))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  saveAs(blob, `${title.replace(/[^a-zA-Z0-9]/g, "_")}.csv`);
+}
+
 export async function exportDocument({ title, content, format }: ExportOptions): Promise<void> {
   if (format === "pdf") {
     await exportToPDF(content, title);
-  } else {
+  } else if (format === "docx") {
     await exportToWord(content, title);
+  } else {
+    await exportToExcel(content, title);
   }
 }

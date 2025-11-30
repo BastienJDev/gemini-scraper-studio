@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, scrapedSites, categories } = await req.json();
+    const { messages, scrapedSites, categories, mode = 'chat' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -37,8 +37,49 @@ serve(async (req) => {
     }
 
     console.log('Chat request received');
+    console.log('Mode:', mode);
     console.log('Categories:', categories);
     console.log('Scraped sites count:', scrapedSites?.length || 0);
+
+    // Lightweight rephrase mode (no scraping prompt)
+    if (mode === 'rephrase') {
+      const rephraseSystemPrompt = `Tu es un assistant qui reformule les requêtes de recherche ou de scraping pour qu'elles soient claires, orientées résultats et prêtes à être exécutées.
+- Conserve le sens métier et les termes importants
+- Clarifie les intentions (période, géographie, type de source)
+- Propose une version concise optimisée pour un moteur de recherche ou un scraper
+- Réponds uniquement par la requête reformulée, sans ajout de contexte ni sources`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: rephraseSystemPrompt },
+            ...(messages || []),
+          ],
+          stream: true,
+          temperature: 0.2,
+          max_tokens: 256,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI Gateway error (rephrase):', response.status, errorText);
+        return new Response(
+          JSON.stringify({ error: 'Erreur lors de la reformulation' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(response.body, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+      });
+    }
     
     // Log content sizes for debugging
     if (scrapedSites) {
@@ -65,7 +106,7 @@ serve(async (req) => {
           ...messages,
         ],
         stream: true,
-        temperature: 0.4,
+        temperature: 0.2,
         max_tokens: 8192,
       }),
     });

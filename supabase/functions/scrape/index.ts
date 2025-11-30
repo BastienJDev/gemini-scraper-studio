@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { url, deep = true } = await req.json();
+    const { url, deep = true, maxPages } = await req.json();
     
     if (!url) {
       return new Response(
@@ -33,7 +33,10 @@ serve(async (req) => {
       );
     }
 
-    console.log('Scraping URL:', url, 'Deep:', deep);
+    const maxPagesToScrape = Math.min(Math.max(typeof maxPages === 'number' ? maxPages : parseInt(maxPages) || 0, 1), 20);
+    const shouldDeepScrape = deep && maxPagesToScrape > 1;
+
+    console.log('Scraping URL:', url, 'Deep:', shouldDeepScrape, 'Max pages:', maxPagesToScrape);
 
     const baseUrl = new URL(url);
     const scrapedPages: ScrapedPage[] = [];
@@ -62,7 +65,7 @@ serve(async (req) => {
     }
 
     // Deep scraping: follow internal links and priority paths
-    if (deep) {
+    if (shouldDeepScrape) {
       // First, try priority paths (actualités, news, etc.)
       const priorityUrls = PRIORITY_PATHS
         .map(path => {
@@ -92,8 +95,8 @@ serve(async (req) => {
         .slice(0, 8);
 
       // Combine and deduplicate URLs
-      const urlsToScrape = [...new Set([...priorityUrls, ...internalLinks])].slice(0, 6);
-      console.log('Deep scraping', urlsToScrape.length, 'additional URLs');
+      const urlsToScrape = [...new Set([...priorityUrls, ...internalLinks])].slice(0, Math.max(0, maxPagesToScrape - 1));
+      console.log('Deep scraping', urlsToScrape.length, 'additional URLs (limit set by user)');
 
       // Scrape additional pages in parallel (max 3 at a time for performance)
       for (let i = 0; i < urlsToScrape.length; i += 3) {
@@ -136,6 +139,7 @@ serve(async (req) => {
         content: combinedContent,
         pages: scrapedPages, // NEW: Individual pages with URLs
         pagesScraped: scrapedPages.length,
+        maxPagesUsed: maxPagesToScrape,
         url
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
