@@ -42,7 +42,7 @@ serve(async (req) => {
 
     // If maxPages not provided, aim for 20 to cover "scrape au max"
     const providedMax = typeof maxPages === 'number' ? maxPages : parseInt(maxPages);
-    const maxPagesToScrape = Math.min(Math.max(providedMax || 20, 1), 20);
+    const maxPagesToScrape = Math.min(Math.max(providedMax || 50, 1), 50);
     const shouldDeepScrape = deep && maxPagesToScrape > 1;
 
     console.log('Scraping URL:', url, 'Deep:', shouldDeepScrape, 'Max pages:', maxPagesToScrape);
@@ -92,7 +92,9 @@ serve(async (req) => {
           try {
             const linkUrl = new URL(link, url);
             const href = linkUrl.href;
+            const path = linkUrl.pathname.toLowerCase();
             // Same domain, not visited, and looks like content (not assets)
+            const isArticleLike = /(article|actualite|news|blog|post|story)/.test(path) || path.split('/').length > 3;
             return linkUrl.hostname === baseUrl.hostname && 
                    !visitedUrls.has(href) &&
                    !href.match(/\.(css|js|png|jpg|jpeg|gif|svg|pdf|doc|ico)$/i) &&
@@ -100,12 +102,18 @@ serve(async (req) => {
                    !href.includes('contact') &&
                    !href.includes('mailto:') &&
                    !href.includes('tel:') &&
-                   href.length < 200;
+                   href.length < 200 &&
+                   isArticleLike;
           } catch {
             return false;
           }
         })
-        .slice(0, 12);
+        // Prioritise article-like deep paths
+        .sort((a, b) => {
+          const depth = (p: string) => p.split('/').length;
+          return depth(b) - depth(a);
+        })
+        .slice(0, 20);
 
       // Combine and deduplicate URLs
       const urlsToScrape = [...new Set([...priorityUrls, ...internalLinks])].slice(0, Math.max(0, maxPagesToScrape - 1));
