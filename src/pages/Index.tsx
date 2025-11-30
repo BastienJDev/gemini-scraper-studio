@@ -64,6 +64,7 @@ const Index = () => {
 
   const SCRAPE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape`;
   const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+  const PLAYWRIGHT_API = import.meta.env.VITE_PLAYWRIGHT_API;
 
   const depthConfig = {
     1: { deep: false, maxPages: 1 },
@@ -101,27 +102,28 @@ const Index = () => {
   };
 
   const scrapeSite = async (site: { name: string; url: string }, level: 1 | 2 | 3) => {
-    const cfg = depthConfig[level];
-    const res = await fetch(SCRAPE_URL, {
+    if (!PLAYWRIGHT_API) {
+      throw new Error("PLAYWRIGHT_API non configuré");
+    }
+
+    const res = await fetch(PLAYWRIGHT_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ url: site.url, deep: cfg.deep, maxPages: cfg.maxPages, query: prompt }),
+      body: JSON.stringify({ url: site.url, query: prompt }),
     });
     const data = await res.json();
-    if (data.success) {
-      return {
-        url: site.url,
-        title: data.title || site.name,
-        content: data.content || "",
-        siteName: site.name,
-        pages: data.pages || [],
-        occurrences: (data.occurrences || []) as Occurrence[],
-      };
-    }
-    return null;
+    if (!data.success) throw new Error(data.error || "Scrape failed");
+
+    return {
+      url: site.url,
+      title: data.title || site.name,
+      content: data.content || "",
+      siteName: site.name,
+      pages: [],
+      occurrences: (data.occurrences || []) as Occurrence[],
+    };
   };
 
   const buildOccurrences = (sites: any[], query: string) => {
