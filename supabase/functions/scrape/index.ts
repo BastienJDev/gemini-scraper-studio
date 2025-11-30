@@ -25,6 +25,13 @@ interface Occurrence {
   snippet: string;
 }
 
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -150,46 +157,50 @@ serve(async (req) => {
     // Build occurrences when query provided
     const occurrences: Occurrence[] = [];
     if (query && typeof query === "string" && query.trim().length > 0) {
-      const q = query.toLowerCase().trim();
+      const normalizedQuery = normalize(query.trim());
+      const terms = normalizedQuery.split(/\s+/).filter((t) => t.length > 2);
+
       scrapedPages.forEach((page) => {
         const content = page.content || "";
-        const contentLower = content.toLowerCase();
-        let startIdx = 0;
-        while (true) {
-          const idx = contentLower.indexOf(q, startIdx);
-          if (idx === -1) break;
+        const contentNorm = normalize(content);
 
-          // Extract a sentence/snippet around occurrence
-          const separators = /[\.?!]/g;
-          let start = 0;
-          let end = content.length;
-          let m;
-          while ((m = separators.exec(content)) !== null) {
-            if (m.index < idx) {
-              start = m.index + 1;
-            } else if (m.index > idx && end === content.length) {
-              end = m.index + 1;
-              break;
-            }
+        // Require all terms to be present
+        const missing = terms.some((t) => !contentNorm.includes(t));
+        if (missing) return;
+
+        // Find first occurrence of the first term for snippet positioning
+        const firstTerm = terms[0] || normalizedQuery;
+        let startIdx = contentNorm.indexOf(firstTerm);
+        if (startIdx === -1) return;
+
+        // Extract a sentence/snippet around occurrence
+        const separators = /[\.?!]/g;
+        let start = 0;
+        let end = content.length;
+        let m;
+        while ((m = separators.exec(content)) !== null) {
+          if (m.index < startIdx) {
+            start = m.index + 1;
+          } else if (m.index > startIdx && end === content.length) {
+            end = m.index + 1;
+            break;
           }
-          const rawSnippet = content.substring(Math.max(0, start - 20), Math.min(content.length, end + 20));
-          const cleaned = rawSnippet
-            .replace(/#+/g, "")
-            .replace(/\s+/g, " ")
-            .replace(/\s([,.!?;:])/g, "$1")
-            .trim();
-          const maxLen = 240;
-          const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
-
-          occurrences.push({
-            siteName: page.title || siteTitle || baseUrl.hostname,
-            pageTitle: page.title || page.url,
-            pageUrl: page.url,
-            snippet,
-          });
-
-          startIdx = idx + q.length;
         }
+        const rawSnippet = content.substring(Math.max(0, start - 20), Math.min(content.length, end + 20));
+        const cleaned = rawSnippet
+          .replace(/#+/g, "")
+          .replace(/\s+/g, " ")
+          .replace(/\s([,.!?;:])/g, "$1")
+          .trim();
+        const maxLen = 240;
+        const snippet = cleaned.length > maxLen ? `${cleaned.slice(0, maxLen)}...` : cleaned;
+
+        occurrences.push({
+          siteName: page.title || siteTitle || baseUrl.hostname,
+          pageTitle: page.title || page.url,
+          pageUrl: page.url,
+          snippet,
+        });
       });
     }
     
