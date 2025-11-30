@@ -278,16 +278,20 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
       if (!useGeminiSummary) {
         if (scrapedSites.length === 0) {
           toast.info("Aucun site analysé");
+          setIsLoading(false);
+          setScrapingProgress(null);
           return;
         }
 
         const depthLabel = DEPTH_CONFIG[depthLevel]?.label || "Base";
         assistantContent = `Sites analysés (${depthLabel})\n\n`;
         scrapedSites.forEach((site, idx) => {
-          assistantContent += `- ${idx + 1}. ${site.siteName || site.title || site.url}\n  ${site.url}\n`;
+          const siteLabel = site.siteName || site.title || site.url;
+          assistantContent += `- ${idx + 1}. [${siteLabel}](${site.url})\n`;
           if (site.pages && site.pages.length > 0) {
             site.pages.slice(0, 10).forEach((page, pIdx) => {
-              assistantContent += `    • ${pIdx + 1}. ${page.title || page.url} — ${page.url}\n`;
+              const pageLabel = page.title || page.url;
+              assistantContent += `    • ${pIdx + 1}. [${pageLabel}](${page.url})\n`;
             });
           }
         });
@@ -296,6 +300,8 @@ export const ChatInterface = ({ selectedCategories = [], onCategoryToggle, onCle
           ...prev,
           { role: "assistant", content: assistantContent },
         ]);
+        setIsLoading(false);
+        setScrapingProgress(null);
         return;
       }
 

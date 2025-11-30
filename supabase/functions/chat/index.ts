@@ -278,7 +278,7 @@ ${sourcesList}
 
 1. **MARKDOWN OBLIGATOIRE** : Utilise les headers ###, le gras **, les listes -, et les séparateurs ---
 2. **CITATIONS** : Mets [1], [2], [3] après CHAQUE information dans le texte
-3. **LIENS CLIQUABLES** : Dans la section sources, utilise le format [Nom](URL) pour les liens
+3. **LIENS CLIQUABLES** : Dans la section sources, utilise le format [Nom](URL) en reprenant L’URL EXACTE DE LA PAGE (pas la page d’accueil)
 4. **EXHAUSTIVITÉ** : Parcours CHAQUE source en détail
 5. **CLARTÉ** : Structure la réponse de façon logique et professionnelle
 6. **NE PAS INVENTER** : Utilise UNIQUEMENT le contenu fourni
